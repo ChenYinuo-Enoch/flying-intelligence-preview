@@ -11,7 +11,7 @@ const papers = [
     },
     {
         title: "UAV-Track VLA: Embodied Aerial Tracking via Vision-Language-Action Models",
-        url: "https://flying-intelligence.github.io/UAV-Track-VLA-Web/",
+        url: "https://flying-intelligence-team.github.io/UAV-Track-VLA-Web/",
         venue: "arXiv",
         img: "files/images/UAV-Track-VLA.png",
         date: "Apr. 2026",
