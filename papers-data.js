@@ -10,6 +10,15 @@ const papers = [
         tags: ["Low-altitude Perception", "Low-altitude Coordination", "Low-altitude Maneuvering", "Low-altitude Operation"]
     },
     {
+        title: "AIR-VLA: Vision-Language-Action Systems for Aerial Manipulation",
+        url: "https://arxiv.org/abs/2601.21602",
+        venue: "ICML 2026",
+        img: "files/images/AIR-VLA.png",
+        date: "Jan. 2026",
+        authors: '<a href="group.html#jianli-sun">Jianli Sun</a>, Bin Tian, <a href="group.html#qiyao-zhang">Qiyao Zhang</a>, <a href="group.html#chengxiang-li">Chengxiang Li</a>, <a href="group.html#zihan-song">Zihan Song</a>, Zhiyong Cui, Yisheng Lv, <a href="group.html#yonglin-tian">Yonglin Tian*</a>',
+        tags: ["Low-altitude Operation"]
+    },
+    {
         title: "UAV-Track VLA: Embodied Aerial Tracking via Vision-Language-Action Models",
         url: "https://flying-intelligence-team.github.io/UAV-Track-VLA-Web/",
         venue: "arXiv",
@@ -37,15 +46,6 @@ const papers = [
         date: "Jan. 2026",
         authors: '<a href="group.html#yonglin-tian">Yonglin Tian</a>, <a href="group.html#qiyao-zhang">Qiyao Zhang</a>, Wei Xu, Yutong Wang, <a href="group.html#yihao-wu">Yihao Wu</a>, <a href="group.html#xinyi-li">Xinyi Li</a>, Xingyuan Dai, Hui Zhang, Zhiyong Cui, Baoqing Guo, Zujun Yu, Yisheng Lv*',
         tags: ["Low-altitude Perception"]
-    },
-    {
-        title: "AIR-VLA: Vision-Language-Action Systems for Aerial Manipulation",
-        url: "https://arxiv.org/abs/2601.21602",
-        venue: "arXiv",
-        img: "files/images/AIR-VLA.png",
-        date: "Jan. 2026",
-        authors: '<a href="group.html#jianli-sun">Jianli Sun</a>, Bin Tian, <a href="group.html#qiyao-zhang">Qiyao Zhang</a>, <a href="group.html#chengxiang-li">Chengxiang Li</a>, <a href="group.html#zihan-song">Zihan Song</a>, Zhiyong Cui, Yisheng Lv, <a href="group.html#yonglin-tian">Yonglin Tian*</a>',
-        tags: ["Low-altitude Operation"]
     },
     {
         title: "LogisticsVLN: Vision-Language Navigation For Low-Altitude Terminal Delivery Based on Agentic UAVs",
