@@ -2,79 +2,14 @@
 <html lang="en">
 
 <head>
-    <style>
-        div.col-md-3.highlight-person,
-        .highlight-person {
-            box-shadow: 0 0 0 4px #ff9800 !important;
-            border-radius: 12px !important;
-            background: #fffbe6 !important;
-            transition: box-shadow 0.3s, background 0.3s !important;
-            z-index: 10 !important;
-            position: relative;
-        }
-
-        /* 将每个人的名字显示为蓝色，暗示这是一个可点击的超链接 */
-        .post-meta .d-block b,
-        .post-meta .d-block b a,
-        .post-meta .d-block a {
-            color: #007bff;
-            text-decoration: none;
-        }
-
-        .post-meta .d-block b:hover,
-        .post-meta .d-block b a:hover,
-        .post-meta .d-block a:hover {
-            text-decoration: underline;
-            cursor: pointer;
-        }
-
-        /* 统一成员头像尺寸与裁剪，避免图片大小/比例不一�?*/
-        .person-card .card img {
-            width: 100% !important;
-            height: 250px;
-            object-fit: cover;
-            display: block;
-            margin: 0 auto;
-        }
-
-        /* 使卡片内图片与信息在垂直方向居中对齐 */
-        .person-card .card {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: flex-start;
-            padding: 0.5rem;
-        }
-
-        .person-card .post-meta {
-            width: 100%;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            text-align: center;
-            padding: 8px 0;
-        }
-
-        /* 收紧 post-meta 下直接链接的垂直间距，覆盖内�?margin */
-        .person-card .post-meta>a {
-            display: block;
-            margin: 1px 0 !important;
-            padding: 0 !important;
-            line-height: 1.1;
-        }
-    </style>
     <script>
-        // 页面加载后检查URL hash并高亮对应成员，并使高亮框与照片居中对齐
         function highlightAndCenterPerson() {
             if (window.location.hash) {
                 var id = window.location.hash.replace('#', '');
                 var el = document.getElementById(id);
                 if (el) {
-                    // 移除所有高�?
                     document.querySelectorAll('.highlight-person').forEach(function (e) { e.classList.remove('highlight-person'); });
                     el.classList.add('highlight-person');
-                    // 延时确保图片加载完成
                     setTimeout(function () {
                         var rect = el.getBoundingClientRect();
                         var absoluteElementTop = rect.top + window.pageYOffset;
@@ -91,39 +26,26 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
 
-
     <link href="https://fonts.googleapis.com/css?family=B612+Mono|Cabin:400,700&display=swap" rel="stylesheet">
-
     <link rel="stylesheet" href="../fonts/icomoon/style.css">
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/css/bootstrap.min.css"
         integrity="sha384-Vkoo8x4CGsO3+Hhxv8T/Q5PaXtkKtu6ug5TOeNV6gBiFeWPGFN9MuhOf23Q9Ifjh" crossorigin="anonymous">
-
     <link rel="stylesheet" href="../css/jquery-ui.css">
     <link rel="stylesheet" href="../css/owl.carousel.min.css">
     <link rel="stylesheet" href="../css/owl.theme.default.min.css">
-    <link rel="stylesheet" href="../css/owl.theme.default.min.css">
-
     <link rel="stylesheet" href="../css/jquery.fancybox.min.css">
-
     <link rel="stylesheet" href="../fonts/flaticon/font/flaticon.css">
-
     <link rel="stylesheet" href="../css/aos.css">
     <link href="../css/jquery.mb.YTPlayer.min.css" media="all" rel="stylesheet" type="text/css">
-
     <link rel="stylesheet" href="../css/style.css">
     <link rel="stylesheet" href="../css/navbar.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/jpswalsh/academicons@1/css/academicons.min.css">
-    <link rel="shortcut icon" type="image/x-icon" href="favicon.ico" />
-
-
-
+    <link rel="shortcut icon" type="image/x-icon" href="favicon.ico">
 </head>
 
-<body data-spy="scroll" data-target=".site-navbar-target" data-offset="300">
-
+<body class="group-page" data-spy="scroll" data-target=".site-navbar-target" data-offset="300">
     <div class="site-wrap">
-
         <div class="site-mobile-menu site-navbar-target">
             <div class="site-mobile-menu-header">
                 <div class="site-mobile-menu-close mt-3">
@@ -136,8 +58,7 @@
         <div class="header-top">
             <div class="container" style="padding:20px">
                 <div class="row align-items-center">
-                    <!-- <div class="col-12 col-lg-6 d-flex"> -->
-                    <img src="../files/images/FlyingIntelligence_LOGO.png" width="25%" />
+                    <img src="../files/images/FlyingIntelligence_LOGO.png" width="25%" alt="Flying Intelligence">
                     <a class="site-logo" style="margin-left: 390px;">
                         <div style="font-size: 60px; font-weight: bold; margin-left: -40px;">
                             <b style="color: rgb(150, 0, 0)"></b>飞行智能社区
@@ -150,17 +71,15 @@
                     <a href="#"
                         class="ml-auto d-inline-block d-lg-none site-menu-toggle js-menu-toggle text-black"><span
                             class="icon-menu h3"></span></a>
-
                 </div>
             </div>
         </div>
-
 
         <div class="site-navbar py-2 js-sticky-header site-navbar-target d-none pl-0 d-lg-block" role="banner">
             <div class="container" style="padding-right:10%;">
                 <div class="logo">
                     <a href="../index.html">
-                        <img src="../files/images/FlyingIntelligence_LOGO.png" alt="Flying Intelligence" />
+                        <img src="../files/images/FlyingIntelligence_LOGO.png" alt="Flying Intelligence">
                     </a>
                 </div>
                 <nav class="site-navigation position-relative" role="navigation">
@@ -181,232 +100,254 @@
                 </nav>
             </div>
         </div>
+    </div>
 
-    </div>
-    </div>
-    <div class="site-section">
+    <main class="site-section">
         <div class="container">
-            <div class="row">
-                <!-- Organizer section removed: Yonglin Tian moved into Member list -->
-                <div class="person-card">
-                    <div class="col-lg-12" id="people">
-                        <div class="section-title">
-                            <h2>Members</h2>
-                            <div class="row justify-content-md-left" style="margin-top: 20px">
-                                <div class="col-md-3" style="margin-bottom: 40px" id="yonglin-tian">
-                                    <div class="card">
-                                        <a href="https://hub-tian.github.io/"><img src="../groups/Yonglin Tian.jpg"
-                                                width="100%" style="margin:auto"></a>
-                                        <div class="post-meta">
-                                            <span class="d-block" style="padding-top:10px"><b><a
-                                                        href="https://hub-tian.github.io/">Yonglin
-                                                        Tian</a></b></span>
-                                            <span class="d-block">Associate Researcher, Institute of Automation,
-                                                Chinese Academy of Sciences</span>
-                                            <span class="d-block">Embodied UAVs, AI4S</span>
-                                            <span class="d-block">yonglin DOT tian AT ia DOT ac DOT cn</span>
-                                            <a href="https://scholar.google.com/citations?hl=zh-CN&user=bq0EODcAAAAJ"
-                                                style="margin: 5px 0; color: #007bff; text-decoration: underline;">Google
-                                                Scholar</a>
+            <div class="person-card" id="people">
+                <div class="section-title group-page-title">
+                    <h2>Members</h2>
+                </div>
 
-                                        </div>
-                                    </div>
+                <section class="group-section" aria-labelledby="faculty-advisor-heading">
+                    <h3 class="group-section-heading" id="faculty-advisor-heading">Faculty Advisor</h3>
+                    <div class="member-grid advisor-grid">
+                        <div class="member-card advisor-card" id="yonglin-tian">
+                            <div class="card">
+                                <a href="https://hub-tian.github.io/"><img src="../groups/Yonglin Tian.jpg"
+                                        alt="Yonglin Tian"></a>
+                                <div class="post-meta">
+                                    <span class="d-block" style="padding-top:10px"><b><a
+                                                href="https://hub-tian.github.io/">Yonglin
+                                                Tian</a></b></span>
+                                    <span class="d-block">Associate Researcher, Institute of Automation,
+                                        Chinese Academy of Sciences</span>
+                                    <span class="d-block">Embodied UAVs, AI4S</span>
+                                    <span class="d-block">yonglin DOT tian AT ia DOT ac DOT cn</span>
+                                    <a href="https://scholar.google.com/citations?hl=zh-CN&user=bq0EODcAAAAJ"
+                                        style="margin: 5px 0; color: #007bff; text-decoration: underline;">Google
+                                        Scholar</a>
                                 </div>
-                                <div class="col-md-3" style="margin-bottom: 40px" id="jianli-sun">
-                                    <div class="card">
-                                        <img src="../groups/Jianli Sun.png" width="104%" style="margin:auto">
-                                        <div class="post-meta">
-                                            <span class="d-block" style="padding-top:10px"><b><a
-                                                        href="../person/papers_jianli-sun.html">Jianli
-                                                        Sun</a></b></span>
-                                            <span class="d-block">(Fall 2025 - Present) </span>
-                                            <span class="d-block">The Institute of Automation, Chinese Academy of
-                                                Sciences</span>
-                                            <span class="d-block">Robotics, VLA, VLM</span>
-                                            <span class="d-block">spencersun1206@gmail.com</span>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="col-md-3" style="margin-bottom: 40px" id="xinyuan-zhang">
-                                    <div class="card"><img src="../groups/Xinyuan Zhang.jpg" width="100%"
-                                            style="margin:auto">
-                                        <div class="post-meta">
-                                            <span class="d-block" style="padding-top:10px"><b><a
-                                                        href="../person/papers_xinyuan-zhang.html">Xinyuan
-                                                        Zhang</a></b></span>
-                                            <span class="d-block"> (Winter 2024 - Present) </span>
-                                            <span class="d-block">University of Chinese Academy of Sciences</span>
-                                            <span class="d-block">Vision-Language Navigation, Multimodal</span>
-                                            <span class="d-block">cynthiasunny1128@gmail.com</span>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="col-md-3" style="margin-bottom: 40px" id="qiyao-zhang">
-                                    <div class="card" id="qiyao-zhang"><img src="../groups/Qiyao Zhang.jpg" width="100%"
-                                            style="margin:auto">
-                                        <div class="post-meta">
-                                            <span class="d-block" style="padding-top:10px"><b><a
-                                                        href="../person/papers_qiyao-zhang.html">Qiyao
-                                                        Zhang</a></b></span>
-                                            <span class="d-block"> (Summer 2024 - Present) </span>
-                                            <span class="d-block">Beijing Institute of Technology</span>
-                                            <span class="d-block">VLA model, Multi-model</span>
-                                            <span class="d-block">3220241221@bit.edu.cn</span>
-                                            <a href="https://scholar.google.com/citations?user=BFALfAwAAAAJ&hl=zh-CN&oi=ao"
-                                                style="margin: 5px 0; color: #007bff; text-decoration: underline;">Google
-                                                Scholar</a>
-                                        </div>
-                                    </div>
-                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
 
-                                <div class="col-md-3" style="margin-bottom: 40px" id="xianke-wu">
-                                    <div class="card"><img src="../groups/Xianke Wu.jpg" width="105%"
-                                            style="margin:auto">
-                                        <div class="post-meta">
-                                            <span class="d-block" style="padding-top:10px"><b><a
-                                                        href="../person/papers_xianke-wu.html">Xianke Wu</a></b></span>
-                                            <span class="d-block"> (Jan 2025 - Present) </span>
-                                            <span class="d-block">Beijing University of Posts and
-                                                Telecommunications</span>
-                                            <span class="d-block">Ground-Air Collaborative Perception</span>
-                                            <span class="d-block">sinclairwww@bupt.edu.cn</span>
-                                            <a href="https://scholar.google.com/citations?user=sfz_U54AAAAJ&hl=zh-CN&oi=ao"
-                                                style="margin: 5px 0; color: #007bff; text-decoration: underline;">Google
-                                                Scholar</a>
-                                        </div>
-                                    </div>
+                <section class="group-section" aria-labelledby="group-2025-heading">
+                    <h3 class="group-section-heading" id="group-2025-heading">2025</h3>
+                    <div class="member-grid">
+                        <div class="member-card" id="jianli-sun">
+                            <div class="card">
+                                <img src="../groups/Jianli Sun.png" alt="Jianli Sun">
+                                <div class="post-meta">
+                                    <span class="d-block" style="padding-top:10px"><b><a
+                                                href="../person/papers_jianli-sun.html">Jianli
+                                                Sun</a></b></span>
+                                    <span class="d-block">(Fall 2025 - Present) </span>
+                                    <span class="d-block">The Institute of Automation, Chinese Academy of
+                                        Sciences</span>
+                                    <span class="d-block">Robotics, VLA, VLM</span>
+                                    <span class="d-block">spencersun1206@gmail.com</span>
                                 </div>
-                                <div class="col-md-3" style="margin-bottom: 40px" id="yihao-wu">
-                                    <div class="card">
-                                        <img src="../groups/Yihao Wu.jpg" width="100%" style="margin:auto">
-                                        <div class="post-meta">
-                                            <span class="d-block" style="padding-top:10px"><b><a
-                                                        href="../person/papers_yihao-wu.html">Yihao Wu</a></b></span>
-                                            <span class="d-block">(Summer 2024 - Present) </span>
-                                            <span class="d-block">University Science and Technology of
-                                                Liaoning</span>
-                                            <span class="d-block">MLLM</span>
-                                            <span class="d-block">1043587700@qq.com</span>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="col-md-3" style="margin-bottom: 40px" id="xinyi-li">
-                                    <div class="card">
-                                        <img src="../groups/Xinyi Li.jpg" width="100%" style="margin:auto">
-                                        <div class="post-meta">
-                                            <span class="d-block" style="padding-top:10px"><b><a
-                                                        href="../person/papers_xinyi-li.html">Xinyi Li</a></b></span>
-                                            <span class="d-block">(Winter 2024 - Present) </span>
-                                            <span class="d-block">Shanxi Datong University</span>
+                            </div>
+                        </div>
 
-                                            <span class="d-block">Social behavior modeling,Multi-model</span>
-                                            <span class="d-block">leexinyi2025@gmail.com</span>
-                                        </div>
-                                    </div>
+                        <div class="member-card" id="xinyuan-zhang">
+                            <div class="card">
+                                <img src="../groups/Xinyuan Zhang.jpg" alt="Xinyuan Zhang">
+                                <div class="post-meta">
+                                    <span class="d-block" style="padding-top:10px"><b><a
+                                                href="../person/papers_xinyuan-zhang.html">Xinyuan
+                                                Zhang</a></b></span>
+                                    <span class="d-block"> (Winter 2024 - Present) </span>
+                                    <span class="d-block">University of Chinese Academy of Sciences</span>
+                                    <span class="d-block">Vision-Language Navigation, Multimodal</span>
+                                    <span class="d-block">cynthiasunny1128@gmail.com</span>
                                 </div>
+                            </div>
+                        </div>
 
-                                <div class="col-md-3" style="margin-bottom: 40px" id="wenjin-peng">
-                                    <div class="card">
-                                        <img src="../groups/Wenjin Peng.jpg" width="102%" style="margin:auto">
-                                        <div class="post-meta">
-                                            <span class="d-block" style="padding-top:10px"><b><a
-                                                        href="../person/papers_wenjin-peng.html">Wenjin
-                                                        Peng</a></b></span>
-                                            <span class="d-block">(Fall 2025 - Present) </span>
-                                            <span class="d-block">Wuhan University</span>
-                                            <span class="d-block">Multi-Agent Systems, Large-Scale Simulation &
-                                                Modeling, AI for
-                                                Science (SciML)</span>
-                                            <span class="d-block">peng.wenjin@whu.edu.cn</span>
-                                        </div>
-                                    </div>
+                        <div class="member-card" id="qiyao-zhang">
+                            <div class="card">
+                                <img src="../groups/Qiyao Zhang.jpg" alt="Qiyao Zhang">
+                                <div class="post-meta">
+                                    <span class="d-block" style="padding-top:10px"><b><a
+                                                href="../person/papers_qiyao-zhang.html">Qiyao
+                                                Zhang</a></b></span>
+                                    <span class="d-block"> (Summer 2024 - Present) </span>
+                                    <span class="d-block">Beijing Institute of Technology</span>
+                                    <span class="d-block">VLA model, Multi-model</span>
+                                    <span class="d-block">3220241221@bit.edu.cn</span>
+                                    <a href="https://scholar.google.com/citations?user=BFALfAwAAAAJ&hl=zh-CN&oi=ao"
+                                        style="margin: 5px 0; color: #007bff; text-decoration: underline;">Google
+                                        Scholar</a>
                                 </div>
+                            </div>
+                        </div>
 
-                                <div class="col-md-3" style="margin-bottom: 40px" id="xiangbo-gao">
-                                    <div class="card">
-                                        <img src="../groups/Xinyu Liu.jpg" width="100%" style="margin:auto">
-                                        <div class="post-meta">
-                                            <span class="d-block" style="padding-top:10px"><b>
-                                                    <a href="../person/papers_xinyu-liu.html">Xinyu
-                                                        Liu</a></b></span>
-                                            <span class="d-block"> (Fall 2025 - Present) </span>
-                                            <span class="d-block"> North China Electric Power University </span>
-                                            <span class="d-block">Computer Vision, Optimization Algorithms</span>
-                                            <span class="d-block">liuxinyu@ncepu.edu.cn</span>
-                                        </div>
-                                    </div>
+                        <div class="member-card" id="xianke-wu">
+                            <div class="card">
+                                <img src="../groups/Xianke Wu.jpg" alt="Xianke Wu">
+                                <div class="post-meta">
+                                    <span class="d-block" style="padding-top:10px"><b><a
+                                                href="../person/papers_xianke-wu.html">Xianke Wu</a></b></span>
+                                    <span class="d-block"> (Jan 2025 - Present) </span>
+                                    <span class="d-block">Beijing University of Posts and
+                                        Telecommunications</span>
+                                    <span class="d-block">Ground-Air Collaborative Perception</span>
+                                    <span class="d-block">sinclairwww@bupt.edu.cn</span>
+                                    <a href="https://scholar.google.com/citations?user=sfz_U54AAAAJ&hl=zh-CN&oi=ao"
+                                        style="margin: 5px 0; color: #007bff; text-decoration: underline;">Google
+                                        Scholar</a>
                                 </div>
+                            </div>
+                        </div>
 
-                                <!--                        <div class="col-md-3" style="margin-bottom: 40px">-->
-                                <!--                            <div class="card">-->
-                                <!--                                <a href=""><img src="../groups/moonjun.jpeg" width="100%" style="margin:auto"></a>-->
-                                <!--                                <div class="post-meta">-->
-                                <!--                                    <span class="d-block" style="padding-top:10px"><a-->
-                                <!--                                        href="https://moonjungong.github.io/">Moonjun Gong</a> </span>-->
-                                <!--                                        <span class="d-block"> (Spring 2025 - ) </span>-->
-                                <!--                                        <a href="https://scholar.google.com/citations?hl=en&user=9t65xl0AAAAJ"><i class="ai ai-google-scholar-square ai-1x"></i> Google Scholar</a>-->
-                                <!--                                        <span class="d-block">Spatial Intelligence, Robotics, Autonomous Driving</span>-->
-                                <!--                                </div>-->
-                                <!--                            </div>-->
-                                <!--                        </div>-->
+                        <div class="member-card" id="yihao-wu">
+                            <div class="card">
+                                <img src="../groups/Yihao Wu.jpg" alt="Yihao Wu">
+                                <div class="post-meta">
+                                    <span class="d-block" style="padding-top:10px"><b><a
+                                                href="../person/papers_yihao-wu.html">Yihao Wu</a></b></span>
+                                    <span class="d-block">(Summer 2024 - Present) </span>
+                                    <span class="d-block">University Science and Technology of
+                                        Liaoning</span>
+                                    <span class="d-block">MLLM</span>
+                                    <span class="d-block">1043587700@qq.com</span>
+                                </div>
+                            </div>
+                        </div>
 
-                                <div class="col-md-3" style="margin-bottom: 40px" id="kexin-tian">
-                                    <div class="card">
-                                        <img src="../groups/Houhua Lu.jpg" width="100%" style="margin:auto">
-                                        <div class="post-meta">
-                                            <span class="d-block" style="padding-top:10px"><b><a
-                                                        href="../person/papers_houhua-lu.html">Houhua Lu</a></b></span>
-                                            <span class="d-block"> (Jan 2026 - present) </span>
-                                            <span class="d-block"> Beihang University</span>
-                                            <span class="d-block">Design and Control of Intelligent
-                                                Electromechanical
-                                                Systems</span>
-                                            <span class="d-block">luhouhua@buaa.edu.cn</span>
-                                        </div>
-                                    </div>
+                        <div class="member-card" id="xinyi-li">
+                            <div class="card">
+                                <img src="../groups/Xinyi Li.jpg" alt="Xinyi Li">
+                                <div class="post-meta">
+                                    <span class="d-block" style="padding-top:10px"><b><a
+                                                href="../person/papers_xinyi-li.html">Xinyi Li</a></b></span>
+                                    <span class="d-block">(Winter 2024 - Present) </span>
+                                    <span class="d-block">Shanxi Datong University</span>
+                                    <span class="d-block">Social behavior modeling,Multi-model</span>
+                                    <span class="d-block">leexinyi2025@gmail.com</span>
                                 </div>
-                                <div class="col-md-3" style="margin-bottom: 40px" id="kexin-tian">
-                                    <div class="card">
-                                        <img src="../groups/Zihan Song.jpg" width="105%" style="margin:auto">
-                                        <div class="post-meta">
-                                            <span class="d-block" style="padding-top:10px"><b><a
-                                                        href="../person/papers_zihan-song.html">Zihan
-                                                        Song</a></b></span>
-                                            <span class="d-block"> (Aug 2025 - Present) </span>
-                                            <span class="d-block"> Hunan University </span>
-                                            <span class="d-block">Multimodal Large Model Reinforcement
-                                                Learning</span>
-                                            <span class="d-block">songzihan@hnu.edu.cn</span>
-                                        </div>
-                                    </div>
+                            </div>
+                        </div>
+
+                        <div class="member-card" id="wenjin-peng">
+                            <div class="card">
+                                <img src="../groups/Wenjin Peng.jpg" alt="Wenjin Peng">
+                                <div class="post-meta">
+                                    <span class="d-block" style="padding-top:10px"><b><a
+                                                href="../person/papers_wenjin-peng.html">Wenjin
+                                                Peng</a></b></span>
+                                    <span class="d-block">(Fall 2025 - Present) </span>
+                                    <span class="d-block">Wuhan University</span>
+                                    <span class="d-block">Multi-Agent Systems, Large-Scale Simulation &amp;
+                                        Modeling, AI for
+                                        Science (SciML)</span>
+                                    <span class="d-block">peng.wenjin@whu.edu.cn</span>
                                 </div>
-                                <div class="col-md-3" style="margin-bottom: 40px" id="chengxiang-li">
-                                    <div class="card" id="chengxiang-li">
-                                        <img src="../groups/Chengxiang Li.jpg" width="100%" style="margin:auto">
-                                        <div class="post-meta">
-                                            <span class="d-block" style="padding-top:10px"><b><a
-                                                        href="../person/papers_chengxiang-li.html">Chengxiang
-                                                        Li</a></b></span>
-                                            <span class="d-block"> (Summary 2025 - Present) </span>
-                                            <span class="d-block"> University of Sanya </span>
-                                            <span class="d-block">Visual Language Navigation，Agent development，AI
-                                                for
-                                                Science</span>
-                                            <span class="d-block">kykgeek@gmail.com</span>
-                                        </div>
-                                    </div>
+                            </div>
+                        </div>
+
+                        <div class="member-card" id="xinyu-liu">
+                            <div class="card">
+                                <img src="../groups/Xinyu Liu.jpg" alt="Xinyu Liu">
+                                <div class="post-meta">
+                                    <span class="d-block" style="padding-top:10px"><b>
+                                            <a href="../person/papers_xinyu-liu.html">Xinyu
+                                                Liu</a></b></span>
+                                    <span class="d-block"> (Fall 2025 - Present) </span>
+                                    <span class="d-block"> North China Electric Power University </span>
+                                    <span class="d-block">Computer Vision, Optimization Algorithms</span>
+                                    <span class="d-block">liuxinyu@ncepu.edu.cn</span>
                                 </div>
-                                <div class="col-md-3" style="margin-bottom: 40px" id="kexin-tian">
-                                    <div class="card">
-                                        <img src="../groups/Jiarui Wang.jpg" width="100%" style="margin:auto">
-                                        <div class="post-meta">
-                                            <span class="d-block" style="padding-top:10px"><b><a
-                                                        href="../person/papers_jiarui-wang.html">Jiarui
-                                                        Wang</a></b></span>
-                                            <span class="d-block"> (Winter 2026 - Present) </span>
-                                            <span class="d-block"> Beijing Institute of Technology </span>
-                                            <span class="d-block">Large Language Models, Computer Vision</span>
-                                            <span class="d-block">1796074820a@gmail.com</span>
-                                        </div>
-                                    </div>
+                            </div>
+                        </div>
+
+                        <div class="member-card" id="zihan-song">
+                            <div class="card">
+                                <img src="../groups/Zihan Song.jpg" alt="Zihan Song">
+                                <div class="post-meta">
+                                    <span class="d-block" style="padding-top:10px"><b><a
+                                                href="../person/papers_zihan-song.html">Zihan
+                                                Song</a></b></span>
+                                    <span class="d-block"> (Aug 2025 - Present) </span>
+                                    <span class="d-block"> Hunan University </span>
+                                    <span class="d-block">Multimodal Large Model Reinforcement
+                                        Learning</span>
+                                    <span class="d-block">songzihan@hnu.edu.cn</span>
                                 </div>
+                            </div>
+                        </div>
+
+                        <div class="member-card" id="chengxiang-li">
+                            <div class="card">
+                                <img src="../groups/Chengxiang Li.jpg" alt="Chengxiang Li">
+                                <div class="post-meta">
+                                    <span class="d-block" style="padding-top:10px"><b><a
+                                                href="../person/papers_chengxiang-li.html">Chengxiang
+                                                Li</a></b></span>
+                                    <span class="d-block"> (Summary 2025 - Present) </span>
+                                    <span class="d-block"> University of Sanya </span>
+                                    <span class="d-block">Visual Language Navigation，Agent development，AI
+                                        for
+                                        Science</span>
+                                    <span class="d-block">kykgeek@gmail.com</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <section class="group-section" aria-labelledby="group-2026-heading">
+                    <h3 class="group-section-heading" id="group-2026-heading">2026</h3>
+                    <div class="member-grid">
+                        <div class="member-card" id="houhua-lu">
+                            <div class="card">
+                                <img src="../groups/Houhua Lu.jpg" alt="Houhua Lu">
+                                <div class="post-meta">
+                                    <span class="d-block" style="padding-top:10px"><b><a
+                                                href="../person/papers_houhua-lu.html">Houhua Lu</a></b></span>
+                                    <span class="d-block"> (Jan 2026 - present) </span>
+                                    <span class="d-block"> Beihang University</span>
+                                    <span class="d-block">Design and Control of Intelligent
+                                        Electromechanical
+                                        Systems</span>
+                                    <span class="d-block">luhouhua@buaa.edu.cn</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="member-card" id="jiarui-wang">
+                            <div class="card">
+                                <img src="../groups/Jiarui Wang.jpg" alt="Jiarui Wang">
+                                <div class="post-meta">
+                                    <span class="d-block" style="padding-top:10px"><b><a
+                                                href="../person/papers_jiarui-wang.html">Jiarui
+                                                Wang</a></b></span>
+                                    <span class="d-block"> (Winter 2026 - Present) </span>
+                                    <span class="d-block"> Beijing Institute of Technology </span>
+                                    <span class="d-block">Large Language Models, Computer Vision</span>
+                                    <span class="d-block">1796074820a@gmail.com</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+            </div>
+        </div>
+    </main>
+
+    <script src="../js/jquery-3.3.1.min.js"></script>
+    <script src="../js/jquery-migrate-3.0.1.min.js"></script>
+    <script src="../js/popper.min.js"></script>
+    <script src="../js/bootstrap.min.js"></script>
+    <script src="../js/owl.carousel.min.js"></script>
+    <script src="../js/jquery.stellar.min.js"></script>
+    <script src="../js/jquery.countdown.min.js"></script>
+    <script src="../js/aos.js"></script>
+    <script src="../js/jquery.sticky.js"></script>
+    <script src="../js/main.js"></script>
+</body>
+
+</html>

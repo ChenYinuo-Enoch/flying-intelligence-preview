@@ -43,7 +43,7 @@ function renderPersonPapers(targetId, container) {
     let html = '';
     filteredPapers.forEach(paper => {
         const imgPath = paper.img ? (paper.img.startsWith('http') ? paper.img : '../' + paper.img) : '';
-        const processedAuthors = paper.authors.replace(/href="group.html/g, 'href="../group.html');
+        const processedAuthors = paper.authors.replace(/href="group.html/g, 'href="../pages/group.html');
 
         html += `
             <div class="col-md-6 mb-4">

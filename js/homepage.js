@@ -23,6 +23,7 @@ function renderPapers() {
     let html = '';
     papers.forEach((paper, index) => {
         const demoId = `demo-${index}`;
+        const processedAuthors = paper.authors.replace(/href="group.html/g, 'href="pages/group.html');
         html += `
             <div class='paper-achievement-card mb-5'>
                 <div class='paper-achievement-row'>
@@ -39,9 +40,9 @@ function renderPapers() {
                         ${paper.video ? `<div class='paper-video-container' id='${demoId}--video'><video playsinline autoplay muted loop class='paper-demo-video' data-plyr-provider='html5'><source src='${paper.video}' type='video/mp4'>Your browser does not support the video tag.</video></div>` : ''}
                         <div class='paper-achievement-info'>
                             <div class='paper-tags'>
-                                ${paper.tags.map(t => `<a href='direction_papers.html?direction=${encodeURIComponent(t)}' class='paper-tag-btn' style='background:${tagColors[t] || '#888'};'>${t}</a>`).join('')}
+                                ${paper.tags.map(t => `<a href='pages/direction_papers.html?direction=${encodeURIComponent(t)}' class='paper-tag-btn' style='background:${tagColors[t] || '#888'};'>${t}</a>`).join('')}
                             </div>
-                            <p class='paper-authors'>${paper.authors}</p>
+                            <p class='paper-authors'>${processedAuthors}</p>
                             ${paper.video ? `<button class='paper-demo-btn' onclick="toggleDemo('${demoId}')">📐 Architecture</button>` : ''}
                         </div>
                     </div>

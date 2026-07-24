@@ -8,6 +8,18 @@ jQuery(document).ready(function ($) {
 
 	"use strict";
 
+	$('.site-menu-toggle').attr({
+		'aria-label': 'Menu',
+		'aria-expanded': 'false'
+	});
+	$('.site-mobile-menu-close .js-menu-toggle').attr({
+		'aria-label': 'Close menu',
+		'role': 'button',
+		'tabindex': '0'
+	});
+	$('img[src$="FlyingIntelligence_LOGO.png"]:not([alt])').attr('alt', 'Flying Intelligence');
+	$('img:not([alt])').attr('alt', '');
+
 
 	// loader
 	var loader = function () {
@@ -68,9 +80,10 @@ jQuery(document).ready(function ($) {
 			var $this = $(this),
 				w = $this.width();
 
-			if (w > 768) {
+			if (w > 991) {
 				if ($('body').hasClass('offcanvas-menu')) {
 					$('body').removeClass('offcanvas-menu');
+					$('.site-menu-toggle').attr('aria-expanded', 'false');
 				}
 			}
 		})
@@ -82,11 +95,20 @@ jQuery(document).ready(function ($) {
 			if ($('body').hasClass('offcanvas-menu')) {
 				$('body').removeClass('offcanvas-menu');
 				$this.removeClass('active');
+				$('.site-menu-toggle').attr('aria-expanded', 'false');
 			} else {
 				$('body').addClass('offcanvas-menu');
 				$this.addClass('active');
+				$('.site-menu-toggle').attr('aria-expanded', 'true');
 			}
 		})
+
+		$('body').on('keydown', '.site-mobile-menu-close .js-menu-toggle', function (e) {
+			if (e.key === 'Enter' || e.key === ' ') {
+				e.preventDefault();
+				$(this).trigger('click');
+			}
+		});
 
 		// click outisde offcanvas
 		$(document).mouseup(function (e) {
@@ -94,6 +116,7 @@ jQuery(document).ready(function ($) {
 			if (!container.is(e.target) && container.has(e.target).length === 0) {
 				if ($('body').hasClass('offcanvas-menu')) {
 					$('body').removeClass('offcanvas-menu');
+					$('.site-menu-toggle').attr('aria-expanded', 'false');
 				}
 			}
 		});
