@@ -99,52 +99,69 @@
     </div>
 
     <!-- Community Introduction Section with Hexagons -->
-    <div class="community-intro-section">
+    <main class="community-intro-section interactive-airspace-hero" aria-labelledby="home-title">
+        <canvas class="airspace-canvas" aria-hidden="true"></canvas>
+        <div class="airspace-cloud airspace-cloud--far" data-depth="0.08" aria-hidden="true"></div>
+        <div class="airspace-cloud airspace-cloud--near" data-depth="0.2" aria-hidden="true"></div>
         <div class="container">
             <div class="community-intro-wrapper">
                 <!-- Left Content -->
-                <div class="community-intro-content">
-                    <div class="community-intro-title">
-                        <div>Flying</div>
-                        <div>Intelligence</div>
-                        <div class="team-text">Team</div>
-                    </div>
+                <div class="community-intro-content" data-depth="0.12">
+                    <div class="airspace-kicker">Interactive Airspace</div>
+                    <h1 id="home-title" class="community-intro-title">
+                        <span>Flying</span>
+                        <span>Intelligence</span>
+                        <span class="team-text">Team</span>
+                    </h1>
                     <!-- <div class="community-intro-subtitle">飞行智能社区</div> -->
-                    <div class="community-intro-slogan">
+                    <p class="community-intro-slogan">
                         <span class="slogan-line">A Virtual Research Community for</span>
                         <span class="slogan-highlight">Embodied UAV and Low-Altitude Intelligence</span>
-                    </div>
+                    </p>
+                    <div class="airspace-coordinate" aria-hidden="true">LOW-ALTITUDE / INTELLIGENCE</div>
                 </div>
 
                 <!-- Right Hexagon Grid -->
-                <div class="hexagon-container">
+                <div class="hexagon-container" data-depth="0.2">
                     <div class="hexagon-grid">
-                        <div class="hexagon hexagon-center">
+                        <div class="hexagon hexagon-center" data-air-label="AUTONOMOUS NAVIGATION">
                             <img src="files/images/1.png" alt="Center">
                         </div>
-                        <div class="hexagon hexagon-top">
+                        <div class="hexagon hexagon-top" data-air-label="LOW-ALTITUDE PERCEPTION">
                             <img src="files/images/2.png" alt="Top">
                         </div>
-                        <div class="hexagon hexagon-top-left">
+                        <div class="hexagon hexagon-top-left" data-air-label="EMBODIED UAV">
                             <img src="files/images/3.png" alt="Top Left">
                         </div>
-                        <div class="hexagon hexagon-bottom-left">
+                        <div class="hexagon hexagon-bottom-left" data-air-label="LOW-ALTITUDE OPERATION">
                             <img src="files/images/4.png" alt="Bottom Left">
                         </div>
-                        <div class="hexagon hexagon-bottom">
+                        <div class="hexagon hexagon-bottom" data-air-label="LOW-ALTITUDE COORDINATION">
                             <img src="files/images/5.png" alt="Bottom">
                         </div>
+                    </div>
+                    <div class="airspace-flight-object" data-drone data-depth="0.34" aria-hidden="true">
+                        <span class="airspace-flight-object__body"></span>
+                        <span class="airspace-flight-object__arm airspace-flight-object__arm--a"></span>
+                        <span class="airspace-flight-object__arm airspace-flight-object__arm--b"></span>
+                        <span class="airspace-flight-object__rotor airspace-flight-object__rotor--one"></span>
+                        <span class="airspace-flight-object__rotor airspace-flight-object__rotor--two"></span>
+                        <span class="airspace-flight-object__rotor airspace-flight-object__rotor--three"></span>
+                        <span class="airspace-flight-object__rotor airspace-flight-object__rotor--four"></span>
                     </div>
                 </div>
             </div>
         </div>
-    </div>
+        <a class="airspace-scroll-cue" href="#research-directions" aria-label="Scroll to Research Direction Distribution">
+            <span>SCROLL TO EXPLORE</span><i aria-hidden="true"></i>
+        </a>
+    </main>
 
     <!-- Research Direction Distribution Section -->
-    <div class="site-section research-direction-section">
+    <section id="research-directions" class="site-section research-direction-section" aria-labelledby="research-directions-title">
         <div class="container">
             <div class="section-title section-title-centered">
-                <h2>Research Direction Distribution</h2>
+                <h2 id="research-directions-title">Research Direction Distribution</h2>
             </div>
             <div class="research-charts-wrapper">
                 <div class="research-charts-grid">
@@ -213,20 +230,19 @@
                 <div id="researchDropdownContainer" class="research-dropdown-container"></div>
             </div>
         </div>
-    </div>
-    </div>
+    </section>
 
     <!-- Recent Research Achievements Section -->
-    <div class="site-section recent-achievements-section">
+    <section id="recent-research" class="site-section recent-achievements-section" aria-labelledby="recent-research-title">
         <div class="container">
             <div class="section-title section-title-centered">
-                <h2>Recent Research</h2>
+                <h2 id="recent-research-title">Recent Research</h2>
             </div>
             <div data-papers-container class="papers-container">
                 <!-- Papers will be rendered here by homepage.js -->
             </div>
         </div>
-    </div>
+    </section>
 
     <!-- Visitor Statistics Section -->
     <div class="site-section bg-light py-4 border-top">
@@ -276,6 +292,7 @@
     <script src="js/main.js"></script>
     <script src="js/research-chart.js"></script>
     <script src="js/homepage.js"></script>
+    <script src="js/interactive-airspace.js"></script>
     <script defer src="https://events.vercount.one/js"></script>
 
 

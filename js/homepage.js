@@ -1,87 +1,81 @@
-// Homepage Specific Scripts
+// Homepage paper storytelling. The paper data remains owned by papers-data.js.
 
-// Render Recent Research Achievements dynamically
 document.addEventListener('DOMContentLoaded', function () {
-    // Check if papers data is loaded
     if (typeof papers === 'undefined' || typeof tagColors === 'undefined') {
         console.warn('Paper data not loaded. Papers data:', typeof papers, 'Tag colors:', typeof tagColors);
-        document.querySelector('[data-papers-container]') &&
-            (document.querySelector('[data-papers-container]').innerHTML = '<div class="text-danger">Paper data not loaded.</div>');
+        const container = document.querySelector('[data-papers-container]');
+        if (container) container.innerHTML = '<div class="text-danger">Paper data not loaded.</div>';
     } else {
         renderPapers();
     }
 
-    // Update year in footer
     updateYear();
 });
 
-// Render papers to the page
 function renderPapers() {
     const container = document.querySelector('[data-papers-container]');
     if (!container) return;
 
-    let html = '';
-    papers.forEach((paper, index) => {
-        const demoId = `demo-${index}`;
+    container.innerHTML = papers.map(function (paper, index) {
+        const demoId = 'demo-' + index;
         const processedAuthors = paper.authors.replace(/href="group.html/g, 'href="pages/group.html');
-        html += `
-            <div class='paper-achievement-card mb-5'>
-                <div class='paper-achievement-row'>
-                    <div class='paper-achievement-left'>
-                        <h5 class='paper-title'>${paper.title}</h5>
-                        ${paper.venue ? `<p class='paper-venue' style='font-style: italic; color: #666; margin-bottom: 5px;'>${paper.venue}</p>` : ''}
-                        ${paper.date ? `<p class='paper-date'>${paper.date}</p>` : ''}
-                        <a href='${paper.url}' target='_blank' class='paper-learn-more-btn'>Learn More</a>
-                    </div>
-                    <div class='paper-achievement-right'>
-                        <div class='paper-image-container' id='${demoId}--content' ${paper.video ? "style='display:none;'" : ''}> 
-                            ${paper.img ? `<div class='paper-image-wrapper'><img src='${paper.img}' alt='${paper.title}' class='paper-architecture-img'></div>` : '<div class="paper-image-placeholder">No Image</div>'}
+        const paperNumber = String(index + 1).padStart(2, '0');
+        const media = paper.img
+            ? `<div class="paper-image-wrapper"><img src="${paper.img}" alt="${paper.title}" class="paper-architecture-img" loading="lazy" decoding="async"></div>`
+            : '<div class="paper-image-placeholder">No Image</div>';
+
+        return `
+            <article class="paper-achievement-card" data-paper-index="${index}">
+                <div class="paper-sequence" aria-hidden="true">RESEARCH / ${paperNumber}</div>
+                <div class="paper-achievement-row">
+                    <div class="paper-achievement-left">
+                        <div class="paper-meta-line">
+                            ${paper.date ? `<span>${paper.date}</span>` : ''}
+                            ${paper.venue ? `<span>${paper.venue}</span>` : ''}
                         </div>
-                        ${paper.video ? `<div class='paper-video-container' id='${demoId}--video'><video playsinline autoplay muted loop class='paper-demo-video' data-plyr-provider='html5'><source src='${paper.video}' type='video/mp4'>Your browser does not support the video tag.</video></div>` : ''}
-                        <div class='paper-achievement-info'>
-                            <div class='paper-tags'>
-                                ${paper.tags.map(t => `<a href='pages/direction_papers.html?direction=${encodeURIComponent(t)}' class='paper-tag-btn' style='background:${tagColors[t] || '#888'};'>${t}</a>`).join('')}
+                        <h3 class="paper-title">${paper.title}</h3>
+                        <p class="paper-authors">${processedAuthors}</p>
+                        <a href="${paper.url}" target="_blank" rel="noopener noreferrer" class="paper-learn-more-btn" data-cursor="OPEN">Learn More</a>
+                    </div>
+                    <div class="paper-achievement-right" data-cursor="VIEW">
+                        <div class="paper-image-container" id="${demoId}--content" ${paper.video ? 'hidden' : ''}>${media}</div>
+                        ${paper.video ? `<div class="paper-video-container" id="${demoId}--video"><video playsinline autoplay muted loop preload="metadata" class="paper-demo-video"><source src="${paper.video}" type="video/mp4">Your browser does not support the video tag.</video></div>` : ''}
+                        <div class="paper-achievement-info">
+                            <div class="paper-tags">
+                                ${paper.tags.map(function (tag) { return `<a href="pages/direction_papers.html?direction=${encodeURIComponent(tag)}" class="paper-tag-btn" style="background:${tagColors[tag] || '#888'};">${tag}</a>`; }).join('')}
                             </div>
-                            <p class='paper-authors'>${processedAuthors}</p>
-                            ${paper.video ? `<button class='paper-demo-btn' onclick="toggleDemo('${demoId}')">📐 Architecture</button>` : ''}
+                            ${paper.video ? `<button type="button" class="paper-demo-btn" aria-controls="${demoId}--content ${demoId}--video" aria-pressed="false" onclick="toggleDemo('${demoId}', this)">Architecture</button>` : ''}
                         </div>
                     </div>
                 </div>
-            </div>
-        `;
-    });
-    container.innerHTML = html;
+            </article>`;
+    }).join('');
 
-    // Initialize Plyr for all videos
-    const players = Array.from(document.querySelectorAll('.paper-demo-video')).map(p => new Plyr(p, {
-        autoplay: true,
-        loop: { active: true },
-        muted: true,
-        controls: []
-    }));
-}
-
-// Toggle between image and video demo
-function toggleDemo(demoId) {
-    const contentEl = document.getElementById(demoId + '--content');
-    const videoEl = document.getElementById(demoId + '--video');
-    const btn = event.target;
-
-    if (videoEl.style.display === 'none') {
-        contentEl.style.display = 'none';
-        videoEl.style.display = 'block';
-        btn.textContent = '📐 Architecture';
-    } else {
-        contentEl.style.display = 'block';
-        videoEl.style.display = 'none';
-        btn.textContent = '▶ View Demo';
+    if (typeof window.Plyr === 'function') {
+        document.querySelectorAll('.paper-demo-video').forEach(function (video) {
+            new window.Plyr(video, {
+                autoplay: true,
+                loop: { active: true },
+                muted: true,
+                controls: []
+            });
+        });
     }
 }
 
-// Update current year in footer
+function toggleDemo(demoId, button) {
+    const content = document.getElementById(demoId + '--content');
+    const video = document.getElementById(demoId + '--video');
+    if (!content || !video || !button) return;
+
+    const showArchitecture = !content.hidden;
+    content.hidden = showArchitecture;
+    video.hidden = !showArchitecture;
+    button.textContent = showArchitecture ? 'Architecture' : 'View Demo';
+    button.setAttribute('aria-pressed', String(showArchitecture));
+}
+
 function updateYear() {
     const yearElement = document.getElementById('current-year');
-    if (yearElement) {
-        yearElement.textContent = new Date().getFullYear();
-    }
+    if (yearElement) yearElement.textContent = new Date().getFullYear();
 }

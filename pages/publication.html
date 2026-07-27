@@ -41,7 +41,7 @@
     }
 </style>
 
-<body data-spy="scroll" data-target=".site-navbar-target" data-offset="300">
+<body class="publication-page" data-spy="scroll" data-target=".site-navbar-target" data-offset="300">
 
     <div class="site-wrap">
 
@@ -123,13 +123,19 @@
             <div class="section-title" style="margin-bottom:20px; text-align:center;">
                 <h2>Recent Research Achievements</h2>
             </div>
-            <div style="max-width:900px; margin:0 auto; color:rgb(68,68,68);">
-                <div class="row" data-papers-container>
-                    <!-- Papers will be loaded here from papers-data.js via publication.js -->
-                    <div class="col-md-12 text-center py-5">
-                        <div class="spinner-border text-primary" role="status">
-                            <span class="sr-only">Loading papers...</span>
-                        </div>
+            <div class="publication-toolbar" aria-label="Publication filters">
+                <label for="publication-year-filter">Year
+                    <select id="publication-year-filter"><option value="all">All</option></select>
+                </label>
+                <label for="publication-direction-filter">Research direction
+                    <select id="publication-direction-filter"><option value="all">All</option></select>
+                </label>
+            </div>
+            <div class="publication-list" data-papers-container aria-live="polite">
+                <!-- Papers will be loaded here from papers-data.js via publication.js -->
+                <div class="col-md-12 text-center py-5">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="sr-only">Loading papers...</span>
                     </div>
                 </div>
             </div>
@@ -155,6 +161,7 @@
 
     <script src="../js/main.js"></script>
     <script src="../js/publication.js"></script>
+    <script src="../js/interactive-airspace.js"></script>
 
 </body>
 

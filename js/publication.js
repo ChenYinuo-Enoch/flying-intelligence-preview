@@ -1,45 +1,75 @@
-// Publication Page Specific Scripts
+// Publication archive. Source data remains in papers-data.js.
 
 document.addEventListener('DOMContentLoaded', function () {
+    const container = document.querySelector('[data-papers-container]');
     if (typeof papers === 'undefined') {
         console.warn('Paper data not loaded.');
-        const container = document.querySelector('[data-papers-container]');
-        if (container) {
-            container.innerHTML = '<div class="text-center py-5"><p class="text-danger">Paper data not loaded.</p></div>';
-        }
-    } else {
-        renderPublicationPapers();
+        if (container) container.innerHTML = '<div class="text-center py-5"><p class="text-danger">Paper data not loaded.</p></div>';
+        return;
     }
+
+    setupPublicationFilters();
+    renderPublicationPapers(papers);
 });
 
-function renderPublicationPapers() {
+function publicationYear(paper) {
+    const match = String(paper.date || '').match(/\b(19|20)\d{2}\b/);
+    return match ? match[0] : '';
+}
+
+function setupPublicationFilters() {
+    const yearSelect = document.getElementById('publication-year-filter');
+    const directionSelect = document.getElementById('publication-direction-filter');
+    if (!yearSelect || !directionSelect) return;
+
+    const years = Array.from(new Set(papers.map(publicationYear).filter(Boolean))).sort().reverse();
+    const directions = Array.from(new Set(papers.reduce(function (all, paper) {
+        return all.concat(paper.tags || []);
+    }, []))).sort();
+
+    years.forEach(function (year) {
+        yearSelect.insertAdjacentHTML('beforeend', `<option value="${year}">${year}</option>`);
+    });
+    directions.forEach(function (direction) {
+        directionSelect.insertAdjacentHTML('beforeend', `<option value="${direction}">${direction}</option>`);
+    });
+
+    function applyFilters() {
+        const selectedYear = yearSelect.value;
+        const selectedDirection = directionSelect.value;
+        const filtered = papers.filter(function (paper) {
+            const matchesYear = selectedYear === 'all' || publicationYear(paper) === selectedYear;
+            const matchesDirection = selectedDirection === 'all' || (paper.tags || []).includes(selectedDirection);
+            return matchesYear && matchesDirection;
+        });
+        renderPublicationPapers(filtered);
+    }
+
+    yearSelect.addEventListener('change', applyFilters);
+    directionSelect.addEventListener('change', applyFilters);
+}
+
+function renderPublicationPapers(items) {
     const container = document.querySelector('[data-papers-container]');
     if (!container) return;
 
-    let html = '';
-    // 按时间倒序排列（papers-data.js 中通常是按顺序排的，如果需要倒序可以在这里处理）
-    // 这里保持原有顺序显示
-    papers.forEach((paper) => {
+    container.innerHTML = items.map(function (paper) {
         const imgPath = paper.img ? (paper.img.startsWith('http') ? paper.img : '../' + paper.img) : '';
-        html += `
-            <div class="col-md-12 mb-4">
-                <div class="card h-100 shadow-sm paper-card">
-                    ${imgPath ? `<img class="card-img-top" src="${imgPath}" alt="${paper.title}">` : ''}
-                    <div class="card-body d-flex flex-column">
-                        <h5 class="card-title">
-                            <a href="${paper.url}" target="_blank">${paper.title}</a>
-                        </h5>
-                        <p class="card-text mb-0" style="font-style: italic; color: #666; font-size: 0.9em;">
-                            ${paper.venue || ''}
-                        </p>
-                        <p class="card-text mb-1" style="font-style: italic; color: #888; font-size: 0.85em;">
-                            ${paper.date || ''}
-                        </p>
-                        <p class="card-text small text-muted mb-0">${paper.authors}</p>
-                    </div>
+        const tags = (paper.tags || []).map(function (tag) {
+            return `<a href="direction_papers.html?direction=${encodeURIComponent(tag)}">${tag}</a>`;
+        }).join('');
+
+        return `
+            <article class="publication-entry">
+                <div class="publication-entry__media" data-cursor="VIEW">
+                    ${imgPath ? `<img src="${imgPath}" alt="${paper.title}" loading="lazy" decoding="async">` : ''}
                 </div>
-            </div>
-        `;
-    });
-    container.innerHTML = html;
+                <div class="publication-entry__content">
+                    <div class="publication-entry__meta">${paper.date || ''}${paper.venue ? ` / ${paper.venue}` : ''}</div>
+                    <h3 class="publication-entry__title"><a href="${paper.url}" target="_blank" rel="noopener noreferrer" data-cursor="OPEN">${paper.title}</a></h3>
+                    <p class="publication-entry__authors">${paper.authors}</p>
+                </div>
+                <div class="publication-entry__tags">${tags}</div>
+            </article>`;
+    }).join('');
 }
