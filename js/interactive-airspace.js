@@ -4,6 +4,30 @@
     const motionQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
     const pointerQuery = window.matchMedia('(hover: hover) and (pointer: fine)');
     const reducedMotion = () => motionQuery.matches;
+    const bootstrapScript = document.currentScript || document.querySelector('script[src*="interactive-airspace.js"]');
+    const projectRoot = bootstrapScript ? new URL('../', bootstrapScript.src) : new URL('./', window.location.href);
+
+    function loadFinalLayer() {
+        document.documentElement.classList.add('interactive-final-theme');
+
+        if (!document.querySelector('link[data-interactive-final]')) {
+            const stylesheet = document.createElement('link');
+            stylesheet.rel = 'stylesheet';
+            stylesheet.href = new URL('css/interactive-final.css?v=20260727', projectRoot).href;
+            stylesheet.dataset.interactiveFinal = 'styles';
+            document.head.appendChild(stylesheet);
+        }
+
+        if (!document.querySelector('script[data-interactive-final]')) {
+            const finalScript = document.createElement('script');
+            finalScript.src = new URL('js/interactive-final.js?v=20260727', projectRoot).href;
+            finalScript.async = false;
+            finalScript.dataset.interactiveFinal = 'runtime';
+            document.head.appendChild(finalScript);
+        }
+    }
+
+    loadFinalLayer();
 
     function addSharedShell() {
         const script = document.currentScript || document.querySelector('script[src*="interactive-airspace.js"]');
@@ -86,6 +110,7 @@
 
         const targets = Array.from(document.querySelectorAll([
             '.research-chart-item',
+            '.research-record',
             '.paper-achievement-card',
             '.publication-entry',
             '.group-section',
@@ -252,7 +277,9 @@
         if (!hero) return;
 
         const canvas = hero.querySelector('.airspace-canvas');
-        if (canvas && canvas.getContext) new AirspaceCanvas(canvas);
+        if (canvas && canvas.getContext && !document.documentElement.classList.contains('interactive-final-theme')) {
+            new AirspaceCanvas(canvas);
+        }
         if (!pointerQuery.matches || reducedMotion()) return;
 
         const layers = Array.from(hero.querySelectorAll('[data-depth]'));
@@ -368,8 +395,8 @@
             let frame = 0;
             let point = { x: 0, y: 0 };
             const render = function () {
-                card.style.setProperty('--tilt-x', `${point.y * -4}deg`);
-                card.style.setProperty('--tilt-y', `${point.x * 4}deg`);
+                card.style.setProperty('--tilt-x', `${point.y * -3}deg`);
+                card.style.setProperty('--tilt-y', `${point.x * 3}deg`);
                 frame = 0;
             };
             card.addEventListener('pointermove', function (event) {
