@@ -263,8 +263,9 @@
         const render = function () {
             layers.forEach(function (layer) {
                 const depth = Number(layer.dataset.depth || 0);
-                layer.style.setProperty('--parallax-x', `${pointer.x * depth}px`);
-                layer.style.setProperty('--parallax-y', `${pointer.y * depth}px`);
+                const travel = 32;
+                layer.style.setProperty('--parallax-x', `${pointer.x * depth * travel}px`);
+                layer.style.setProperty('--parallax-y', `${pointer.y * depth * travel}px`);
             });
             if (drone) {
                 drone.style.setProperty('--drone-rx', `${pointer.y * -4}deg`);
@@ -447,6 +448,11 @@
 
         document.querySelectorAll('.paper-achievement-card, .publication-entry').forEach(function (card) {
             card.dataset.cursor = 'OPEN';
+        });
+
+        document.querySelectorAll('.resource-page .trend-entry').forEach(function (entry) {
+            const hasContent = entry.textContent.trim() || entry.querySelector('a, img, video, iframe');
+            if (!hasContent) entry.hidden = true;
         });
     }
 

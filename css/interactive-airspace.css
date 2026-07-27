@@ -258,12 +258,12 @@ select:focus-visible,
   transform: translate3d(var(--parallax-x, 0), var(--parallax-y, 0), 0);
 }
 
-.airspace-cloud--one {
+.airspace-cloud--far {
   top: 14%;
   left: -10%;
 }
 
-.airspace-cloud--two {
+.airspace-cloud--near {
   right: -8%;
   bottom: 10%;
 }
@@ -1140,6 +1140,10 @@ select:focus-visible,
   box-shadow: none;
 }
 
+.resource-page .trend-entry[hidden] {
+  display: none !important;
+}
+
 .resource-page .trend-entry::before,
 .research-page .trend-entry::before {
   position: absolute;
@@ -1156,6 +1160,10 @@ select:focus-visible,
 .research-page .section-title h2 {
   color: #fff;
   letter-spacing: -0.04em;
+}
+
+.resource-page .col-lg-12 > .section-title:not(:first-child) h2 {
+  color: var(--color-text);
 }
 
 .direction-page,
