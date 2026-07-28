@@ -297,7 +297,7 @@ a.text-decoration-none {
     }
 }
 
-/* Community Intro Section with Hexagons */
+/* Community Intro Section */
 .community-intro-section {
     padding: 280px 0 180px 0;
     background: #fff;
@@ -379,79 +379,6 @@ a.text-decoration-none {
     max-width: 750px;
 }
 
-.hexagon-container {
-    flex: 1;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    min-width: 0;
-}
-
-.hexagon-grid {
-    position: relative;
-    width: 570px;
-    height: 510px;
-}
-
-.hexagon {
-    position: absolute;
-    width: 210px;
-    height: 210px;
-    cursor: pointer;
-    overflow: hidden;
-    clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
-    transition: transform 0.3s ease, filter 0.3s ease;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.hexagon-center {
-    left: 50%;
-    top: 50%;
-    margin-left: -105px;
-    margin-top: -105px;
-    z-index: 3;
-}
-
-.hexagon-top {
-    left: 50%;
-    top: 0;
-    margin-left: -105px;
-    z-index: 2;
-}
-
-.hexagon-top-left {
-    left: 0;
-    top: 20%;
-    z-index: 1;
-}
-
-.hexagon-bottom-left {
-    left: 0;
-    bottom: 20%;
-    z-index: 1;
-}
-
-.hexagon-bottom {
-    left: 50%;
-    bottom: 0;
-    margin-left: -105px;
-    z-index: 2;
-}
-
-.hexagon img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    display: block;
-}
-
-.hexagon:hover {
-    transform: scale(1.08);
-    filter: brightness(1.1);
-}
-
 @media (max-width: 1200px) {
     .community-intro-wrapper {
         gap: 60px;
@@ -465,15 +392,6 @@ a.text-decoration-none {
         font-size: 22px;
     }
 
-    .hexagon-grid {
-        width: 480px;
-        height: 420px;
-    }
-
-    .hexagon {
-        width: 180px;
-        height: 180px;
-    }
 }
 
 @media (max-width: 768px) {
@@ -490,21 +408,6 @@ a.text-decoration-none {
         font-size: 54px;
     }
 
-    .hexagon-container {
-        width: 100%;
-    }
-
-    .hexagon-grid {
-        width: 100%;
-        max-width: 450px;
-        height: 360px;
-        margin: 0 auto;
-    }
-
-    .hexagon {
-        width: 150px;
-        height: 150px;
-    }
 }
 
 .research-charts-title {

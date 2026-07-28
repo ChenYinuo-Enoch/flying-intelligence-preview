@@ -7,8 +7,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 
-    <link href="https://fonts.googleapis.com/css?family=B612+Mono|Cabin:400,700&display=swap" rel="stylesheet">
-
     <link rel="stylesheet" href="fonts/icomoon/style.css">
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/css/bootstrap.min.css"
         integrity="sha384-Vkoo8x4CGsO3+Hhxv8T/Q5PaXtkKtu6ug5TOeNV6gBiFeWPGFN9MuhOf23Q9Ifjh" crossorigin="anonymous">
@@ -37,8 +35,6 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
     <!-- Add Chart.js Library -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
-    <!-- Plyr Video Player -->
-    <link rel="stylesheet" href="https://cdn.plyr.io/3.7.8/plyr.css" />
     <!-- 统一数据源，必须在所有内联脚本前加载 -->
     <script src="papers-data.js"></script>
     <script src="js/tag-colors.js"></script>
@@ -98,14 +94,32 @@
 
     </div>
 
-    <!-- Community Introduction Section with Hexagons -->
-    <main class="community-intro-section interactive-airspace-hero" aria-labelledby="home-title">
-        <canvas class="airspace-canvas" aria-hidden="true"></canvas>
-        <div class="airspace-cloud airspace-cloud--far" data-depth="0.08" aria-hidden="true"></div>
-        <div class="airspace-cloud airspace-cloud--near" data-depth="0.2" aria-hidden="true"></div>
+    <!-- Community Introduction Section -->
+    <main class="community-intro-section interactive-airspace-hero immersive-airspace-hero"
+        aria-labelledby="home-title">
+        <div class="immersive-airspace-visual" aria-hidden="true">
+            <div class="immersive-cloud immersive-cloud--one" data-repel-strength="0.65"></div>
+            <div class="immersive-cloud immersive-cloud--two" data-repel-strength="0.85"></div>
+            <div class="immersive-cloud immersive-cloud--three" data-repel-strength="0.5"></div>
+            <div class="immersive-city">
+                <span></span><span></span><span></span><span></span><span></span><span></span><span></span>
+            </div>
+            <div class="immersive-radar">
+                <i></i><i></i><i></i>
+            </div>
+            <div class="immersive-flight-path"></div>
+            <div class="airspace-flight-object immersive-flight-object" data-drone data-depth="0.34">
+                <span class="airspace-flight-object__body"></span>
+                <span class="airspace-flight-object__arm airspace-flight-object__arm--a"></span>
+                <span class="airspace-flight-object__arm airspace-flight-object__arm--b"></span>
+                <span class="airspace-flight-object__rotor airspace-flight-object__rotor--one"></span>
+                <span class="airspace-flight-object__rotor airspace-flight-object__rotor--two"></span>
+                <span class="airspace-flight-object__rotor airspace-flight-object__rotor--three"></span>
+                <span class="airspace-flight-object__rotor airspace-flight-object__rotor--four"></span>
+            </div>
+        </div>
         <div class="container">
             <div class="community-intro-wrapper">
-                <!-- Left Content -->
                 <div class="community-intro-content" data-depth="0.12">
                     <div class="airspace-kicker">Interactive Airspace</div>
                     <h1 id="home-title" class="community-intro-title">
@@ -119,36 +133,6 @@
                         <span class="slogan-highlight">Embodied UAV and Low-Altitude Intelligence</span>
                     </p>
                     <div class="airspace-coordinate" aria-hidden="true">LOW-ALTITUDE / INTELLIGENCE</div>
-                </div>
-
-                <!-- Right Hexagon Grid -->
-                <div class="hexagon-container" data-depth="0.2">
-                    <div class="hexagon-grid">
-                        <div class="hexagon hexagon-center" data-air-label="AUTONOMOUS NAVIGATION">
-                            <img src="files/images/1.png" alt="Center">
-                        </div>
-                        <div class="hexagon hexagon-top" data-air-label="LOW-ALTITUDE PERCEPTION">
-                            <img src="files/images/2.png" alt="Top">
-                        </div>
-                        <div class="hexagon hexagon-top-left" data-air-label="EMBODIED UAV">
-                            <img src="files/images/3.png" alt="Top Left">
-                        </div>
-                        <div class="hexagon hexagon-bottom-left" data-air-label="LOW-ALTITUDE OPERATION">
-                            <img src="files/images/4.png" alt="Bottom Left">
-                        </div>
-                        <div class="hexagon hexagon-bottom" data-air-label="LOW-ALTITUDE COORDINATION">
-                            <img src="files/images/5.png" alt="Bottom">
-                        </div>
-                    </div>
-                    <div class="airspace-flight-object" data-drone data-depth="0.34" aria-hidden="true">
-                        <span class="airspace-flight-object__body"></span>
-                        <span class="airspace-flight-object__arm airspace-flight-object__arm--a"></span>
-                        <span class="airspace-flight-object__arm airspace-flight-object__arm--b"></span>
-                        <span class="airspace-flight-object__rotor airspace-flight-object__rotor--one"></span>
-                        <span class="airspace-flight-object__rotor airspace-flight-object__rotor--two"></span>
-                        <span class="airspace-flight-object__rotor airspace-flight-object__rotor--three"></span>
-                        <span class="airspace-flight-object__rotor airspace-flight-object__rotor--four"></span>
-                    </div>
                 </div>
             </div>
         </div>
@@ -285,9 +269,6 @@
     <script src="js/jquery.fancybox.min.js"></script>
     <script src="js/jquery.sticky.js"></script>
     <script src="js/jquery.mb.YTPlayer.min.js"></script>
-
-    <!-- Plyr Player Script -->
-    <script src="https://cdn.plyr.io/3.7.8/plyr.js"></script>
 
     <script src="js/main.js"></script>
     <script src="js/research-chart.js"></script>

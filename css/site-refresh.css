@@ -376,43 +376,6 @@ body.person-page > .container > .section-title:first-of-type h2::before {
   font-weight: 700;
 }
 
-.home-page .hexagon-container {
-  position: relative;
-}
-
-.home-page .hexagon-grid {
-  width: min(100%, 560px);
-  height: 500px;
-  filter: drop-shadow(0 28px 34px rgba(0, 0, 0, 0.32));
-}
-
-.home-page .hexagon {
-  width: 205px;
-  height: 205px;
-  border: 1px solid var(--color-border-dark);
-  background: var(--color-dark-panel);
-  transition: transform 180ms ease, filter 180ms ease;
-}
-
-.home-page .hexagon-center {
-  margin-top: -102.5px;
-  margin-left: -102.5px;
-}
-
-.home-page .hexagon-top,
-.home-page .hexagon-bottom {
-  margin-left: -102.5px;
-}
-
-.home-page .hexagon img {
-  filter: saturate(0.82) contrast(1.04);
-}
-
-.home-page .hexagon:hover {
-  filter: brightness(1.04);
-  transform: translateY(-3px);
-}
-
 .home-page .research-direction-section {
   border: 0;
   background: var(--color-dark-surface);
@@ -1002,11 +965,6 @@ div.member-card.highlight-person {
     gap: 42px;
   }
 
-  .home-page .hexagon-grid {
-    transform: scale(0.88);
-    transform-origin: center;
-  }
-
   .group-page .member-grid {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
@@ -1093,12 +1051,6 @@ div.member-card.highlight-person {
     max-width: 680px;
   }
 
-  .home-page .hexagon-grid {
-    width: min(100%, 530px);
-    margin: 0 auto;
-    transform: none;
-  }
-
   .home-page .research-charts-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
@@ -1147,27 +1099,6 @@ div.member-card.highlight-person {
   .home-page .community-intro-title {
     margin-bottom: 24px;
     font-size: clamp(3rem, 14vw, 4.6rem);
-  }
-
-  .home-page .hexagon-grid {
-    width: 390px;
-    height: 350px;
-    max-width: 100%;
-  }
-
-  .home-page .hexagon {
-    width: 142px;
-    height: 142px;
-  }
-
-  .home-page .hexagon-center {
-    margin-top: -71px;
-    margin-left: -71px;
-  }
-
-  .home-page .hexagon-top,
-  .home-page .hexagon-bottom {
-    margin-left: -71px;
   }
 
   .home-page .research-direction-section,
@@ -1253,26 +1184,6 @@ div.member-card.highlight-person {
     font-size: 0.98rem;
   }
 
-  .home-page .hexagon-grid {
-    width: 330px;
-    height: 300px;
-  }
-
-  .home-page .hexagon {
-    width: 122px;
-    height: 122px;
-  }
-
-  .home-page .hexagon-center {
-    margin-top: -61px;
-    margin-left: -61px;
-  }
-
-  .home-page .hexagon-top,
-  .home-page .hexagon-bottom {
-    margin-left: -61px;
-  }
-
   .home-page .research-charts-grid {
     grid-template-columns: 1fr;
   }
@@ -1303,7 +1214,6 @@ div.member-card.highlight-person {
     transition-duration: 0.01ms !important;
   }
 
-  .hexagon:hover,
   .research-chart-item:hover,
   .paper-card:hover,
   .paper-achievement-card:hover,

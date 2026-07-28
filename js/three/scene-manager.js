@@ -1,4 +1,4 @@
-import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.164.1/build/three.module.min.js';
+import * as THREE from '../vendor/three-0.164.1.module.min.js';
 
 const THEME_COLORS = {
     home: { primary: 0x3e6f9c, accent: 0xdf6f3f, secondary: 0x5b8979 },
@@ -42,8 +42,10 @@ class AirspaceScene {
         this.animationFrame = 0;
         this.paused = false;
         this.disposed = false;
+        this.clickWaves = [];
 
         this.handlePointer = this.handlePointer.bind(this);
+        this.handlePointerDown = this.handlePointerDown.bind(this);
         this.handleResize = this.handleResize.bind(this);
         this.handleVisibility = this.handleVisibility.bind(this);
         this.render = this.render.bind(this);
@@ -85,6 +87,7 @@ class AirspaceScene {
 
         window.addEventListener('resize', this.handleResize, { passive: true });
         window.addEventListener('pointermove', this.handlePointer, { passive: true });
+        window.addEventListener('pointerdown', this.handlePointerDown, { passive: true });
         document.addEventListener('visibilitychange', this.handleVisibility);
         document.documentElement.classList.add('three-airspace-active');
         this.render();
@@ -125,22 +128,28 @@ class AirspaceScene {
             depthWrite: false
         });
         this.points = new THREE.Points(geometry, material);
+        this.pointHomes = positions.slice();
+        this.pointVelocities = new Float32Array(positions.length);
         this.world.add(this.points);
     }
 
     createNetwork(count) {
         const nodes = [];
         const linePositions = [];
+        const connections = [];
         const nodeGeometry = new THREE.SphereGeometry(0.055, 8, 8);
         const nodeMaterial = new THREE.MeshBasicMaterial({ color: this.colors.accent, transparent: true, opacity: 0.48 });
 
         for (let index = 0; index < count; index += 1) {
             const node = new THREE.Mesh(nodeGeometry, nodeMaterial);
             node.position.set((this.random() - 0.5) * 10, (this.random() - 0.5) * 5.4, (this.random() - 0.5) * 2 - 1);
+            node.userData.home = node.position.clone();
+            node.userData.velocity = new THREE.Vector3();
             nodes.push(node);
             this.world.add(node);
             if (index > 0) {
                 const prior = nodes[Math.floor(this.random() * index)];
+                connections.push([prior, node]);
                 linePositions.push(prior.position.x, prior.position.y, prior.position.z, node.position.x, node.position.y, node.position.z);
             }
         }
@@ -149,6 +158,8 @@ class AirspaceScene {
         geometry.setAttribute('position', new THREE.Float32BufferAttribute(linePositions, 3));
         const material = new THREE.LineBasicMaterial({ color: this.colors.secondary, transparent: true, opacity: 0.16 });
         this.network = new THREE.LineSegments(geometry, material);
+        this.networkNodes = nodes;
+        this.networkConnections = connections;
         this.world.add(this.network);
     }
 
@@ -157,6 +168,7 @@ class AirspaceScene {
         if (this.theme === 'publication' || this.theme === 'direction') this.createArchivePlanes();
         if (this.theme === 'group') this.createCommunityOrbit();
         if (this.theme === 'resource') this.createMissionRings();
+        if (this.theme === 'profile') this.createProfileConstellation();
     }
 
     createDroneAndRoute() {
@@ -237,9 +249,107 @@ class AirspaceScene {
         this.world.add(this.radar);
     }
 
+    createProfileConstellation() {
+        const material = new THREE.MeshBasicMaterial({ color: this.colors.accent, transparent: true, opacity: 0.12 });
+        this.profileConstellation = new THREE.Group();
+        [1.15, 1.85, 2.55].forEach((radius, index) => {
+            const ring = new THREE.Mesh(new THREE.TorusGeometry(radius, 0.012, 6, 96), material);
+            ring.position.set(3.1, 0.2, -1.8 - index * 0.16);
+            ring.rotation.set(0.85 + index * 0.12, 0.42, index * 0.42);
+            this.profileConstellation.add(ring);
+        });
+        this.world.add(this.profileConstellation);
+    }
+
     handlePointer(event) {
         this.pointerTarget.x = (event.clientX / window.innerWidth) * 2 - 1;
         this.pointerTarget.y = -(event.clientY / window.innerHeight) * 2 + 1;
+    }
+
+    handlePointerDown(event) {
+        if (event.button !== 0 || event.pointerType === 'touch') return;
+        const x = (event.clientX / window.innerWidth) * 2 - 1;
+        const y = -(event.clientY / window.innerHeight) * 2 + 1;
+        const wave = new THREE.Mesh(
+            new THREE.RingGeometry(0.12, 0.16, 48),
+            new THREE.MeshBasicMaterial({
+                color: this.colors.accent,
+                transparent: true,
+                opacity: 0.48,
+                side: THREE.DoubleSide,
+                depthWrite: false
+            })
+        );
+        wave.position.set(x * 6.7, y * 3.7, 0.4);
+        wave.userData.createdAt = this.clock.getElapsedTime();
+        this.world.add(wave);
+        this.clickWaves.push(wave);
+    }
+
+    updateIndependentObjects() {
+        const pointerX = this.pointer.x * 7.2;
+        const pointerY = this.pointer.y * 4.1;
+        const positions = this.points.geometry.attributes.position;
+        const values = positions.array;
+        for (let index = 0; index < values.length; index += 3) {
+            const deltaX = values[index] - pointerX;
+            const deltaY = values[index + 1] - pointerY;
+            const distance = Math.max(Math.hypot(deltaX, deltaY), 0.001);
+            const force = distance < 2.05 ? (1 - distance / 2.05) * 0.018 : 0;
+            this.pointVelocities[index] += deltaX / distance * force;
+            this.pointVelocities[index + 1] += deltaY / distance * force;
+            this.pointVelocities[index] += (this.pointHomes[index] - values[index]) * 0.018;
+            this.pointVelocities[index + 1] += (this.pointHomes[index + 1] - values[index + 1]) * 0.018;
+            this.pointVelocities[index] *= 0.89;
+            this.pointVelocities[index + 1] *= 0.89;
+            values[index] += this.pointVelocities[index];
+            values[index + 1] += this.pointVelocities[index + 1];
+        }
+        positions.needsUpdate = true;
+
+        this.networkNodes.forEach((node) => {
+            const deltaX = node.position.x - pointerX;
+            const deltaY = node.position.y - pointerY;
+            const distance = Math.max(Math.hypot(deltaX, deltaY), 0.001);
+            if (distance < 2.55) {
+                const force = (1 - distance / 2.55) * 0.028;
+                node.userData.velocity.x += deltaX / distance * force;
+                node.userData.velocity.y += deltaY / distance * force;
+            }
+            node.userData.velocity.x += (node.userData.home.x - node.position.x) * 0.022;
+            node.userData.velocity.y += (node.userData.home.y - node.position.y) * 0.022;
+            node.userData.velocity.multiplyScalar(0.87);
+            node.position.add(node.userData.velocity);
+        });
+
+        const lines = this.network.geometry.attributes.position;
+        this.networkConnections.forEach((connection, index) => {
+            const offset = index * 6;
+            lines.array[offset] = connection[0].position.x;
+            lines.array[offset + 1] = connection[0].position.y;
+            lines.array[offset + 2] = connection[0].position.z;
+            lines.array[offset + 3] = connection[1].position.x;
+            lines.array[offset + 4] = connection[1].position.y;
+            lines.array[offset + 5] = connection[1].position.z;
+        });
+        lines.needsUpdate = true;
+    }
+
+    updateClickWaves(elapsed) {
+        this.clickWaves = this.clickWaves.filter((wave) => {
+            const age = elapsed - wave.userData.createdAt;
+            if (age > 0.72) {
+                this.world.remove(wave);
+                wave.geometry.dispose();
+                wave.material.dispose();
+                return false;
+            }
+            const progress = age / 0.72;
+            const scale = 1 + progress * 8;
+            wave.scale.setScalar(scale);
+            wave.material.opacity = 0.48 * (1 - progress);
+            return true;
+        });
     }
 
     handleResize() {
@@ -268,7 +378,8 @@ class AirspaceScene {
         this.camera.lookAt(0, 0, 0);
         this.world.rotation.y += (this.pointer.x * 0.025 - this.world.rotation.y) * 0.035;
         this.world.rotation.x += (-this.pointer.y * 0.018 - this.world.rotation.x) * 0.035;
-        this.points.rotation.y = elapsed * 0.006;
+        this.updateIndependentObjects();
+        this.updateClickWaves(elapsed);
         this.grid.position.x = this.pointer.x * 0.08;
         if (this.drone) {
             this.drone.rotation.z = -0.08 - this.pointer.x * 0.06;
@@ -277,6 +388,7 @@ class AirspaceScene {
         }
         if (this.radar) this.radar.rotation.z = elapsed * 0.018;
         if (this.orbits) this.orbits.rotation.z = elapsed * 0.01;
+        if (this.profileConstellation) this.profileConstellation.rotation.z = elapsed * 0.008;
         if (this.archivePlanes) this.archivePlanes.position.y = Math.sin(elapsed * 0.35) * 0.04;
 
         this.renderer.render(this.scene, this.camera);
@@ -289,6 +401,7 @@ class AirspaceScene {
         if (this.animationFrame) window.cancelAnimationFrame(this.animationFrame);
         window.removeEventListener('resize', this.handleResize);
         window.removeEventListener('pointermove', this.handlePointer);
+        window.removeEventListener('pointerdown', this.handlePointerDown);
         document.removeEventListener('visibilitychange', this.handleVisibility);
 
         this.scene.traverse((object) => {
