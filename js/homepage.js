@@ -13,6 +13,8 @@
     let dragMoved = false;
     let wheelLocked = false;
     let detailReturnFocus = null;
+    let detailFlipTimer = 0;
+    let detailFocusTimer = 0;
 
     function relativeOffset(index) {
         const total = records.length;
@@ -23,16 +25,18 @@
     }
 
     function recordPosition(offset) {
-        const compact = window.innerWidth < 700;
-        const step = compact ? Math.min(window.innerWidth * 0.64, 255) : Math.min(window.innerWidth * 0.29, 390);
+        const compact = window.innerWidth < 900;
+        const step = compact
+            ? Math.min(window.innerWidth * 0.82, 330)
+            : Math.min(window.innerWidth * 0.36, 520);
         const distance = Math.abs(offset);
         return {
             x: offset * step,
-            y: offset === 0 ? -18 : (offset % 2 ? 38 : -48) + distance * 8,
+            y: offset === 0 ? -10 : (offset % 2 ? 32 : -26) + distance * 6,
             z: offset === 0 ? 180 : 40 - distance * 24,
-            rotate: offset * (compact ? 4.6 : 6.2),
-            scale: offset === 0 ? 1 : Math.max(0.58, 0.84 - distance * 0.08),
-            opacity: distance > 2 ? 0 : Math.max(0.42, 0.88 - distance * 0.2),
+            rotate: offset * (compact ? 3.8 : 4.8),
+            scale: offset === 0 ? 1 : Math.max(0.56, 0.8 - distance * 0.08),
+            opacity: distance > 2 ? 0 : Math.max(0.34, 0.82 - distance * 0.2),
             layer: 20 - distance
         };
     }
@@ -78,6 +82,7 @@
             if (cover) {
                 cover.tabIndex = Math.abs(offset) <= 1 ? 0 : -1;
                 cover.setAttribute('aria-current', active ? 'true' : 'false');
+                cover.setAttribute('aria-expanded', String(detailIndex === index));
             }
             setVideoState(record, active);
         });
@@ -122,7 +127,8 @@
             ${papers.map(function (paper, index) {
                 return `
                     <article class="research-record" data-paper-index="${index}">
-                        <button class="research-record__cover" type="button" aria-label="Open ${paper.title}">
+                        <button class="research-record__cover" id="research-cover-${index + 1}" type="button"
+                            aria-label="Open ${paper.title}" aria-controls="research-detail" aria-expanded="false">
                             ${paperMedia(paper)}
                         </button>
                         <div class="research-record__summary" aria-live="${index === 0 ? 'polite' : 'off'}">
@@ -235,11 +241,26 @@
         if (document.querySelector('.research-detail')) return;
         const dialog = document.createElement('div');
         dialog.className = 'research-detail';
+        dialog.id = 'research-detail';
         dialog.setAttribute('role', 'dialog');
         dialog.setAttribute('aria-modal', 'true');
         dialog.setAttribute('aria-hidden', 'true');
         dialog.setAttribute('aria-labelledby', 'research-detail-title');
-        dialog.innerHTML = '<div class="research-detail__panel"></div>';
+        dialog.inert = true;
+        dialog.innerHTML = `
+            <button type="button" class="research-detail__close" aria-label="Back to Recent Research">
+                <span aria-hidden="true">←</span><span>Back</span>
+            </button>
+            <div class="research-detail__stage">
+                <div class="research-detail__flipper">
+                    <div class="research-detail__face research-detail__front" aria-hidden="true">
+                        <div class="research-detail__front-card"></div>
+                    </div>
+                    <div class="research-detail__face research-detail__back">
+                        <div class="research-detail__panel"></div>
+                    </div>
+                </div>
+            </div>`;
         document.body.appendChild(dialog);
 
         dialog.addEventListener('click', function (event) {
@@ -269,16 +290,28 @@
     function renderDetail(index) {
         const dialog = document.querySelector('.research-detail');
         const panel = dialog.querySelector('.research-detail__panel');
+        const frontCard = dialog.querySelector('.research-detail__front-card');
         const paper = papers[index];
+        frontCard.innerHTML = `<img src="${paper.img}" alt="">`;
         panel.innerHTML = `
-            <button type="button" class="research-detail__close" aria-label="Close project details">×</button>
             ${detailMedia(paper)}
             <div class="research-detail__copy">
-                <div class="airspace-kicker">${paper.date || ''}${paper.venue ? ` / ${paper.venue}` : ''}</div>
+                <div class="airspace-kicker">Research record ${String(index + 1).padStart(2, '0')} / ${String(papers.length).padStart(2, '0')}</div>
                 <h3 id="research-detail-title">${paper.title}</h3>
-                <div class="research-detail__authors">${processAuthors(paper.authors)}</div>
-                <div class="research-detail__tags">${tagLinks(paper)}</div>
-                <a class="research-detail__link" href="${paper.url}" target="_blank" rel="noopener noreferrer">Learn More</a>
+                <dl class="research-detail__facts">
+                    <div><dt>Published</dt><dd>${paper.date || ''}</dd></div>
+                    <div><dt>Venue</dt><dd>${paper.venue || ''}</dd></div>
+                </dl>
+                <section class="research-detail__section" aria-labelledby="research-detail-authors-${index + 1}">
+                    <h4 id="research-detail-authors-${index + 1}">Authors</h4>
+                    <div class="research-detail__authors">${processAuthors(paper.authors)}</div>
+                </section>
+                <section class="research-detail__section" aria-labelledby="research-detail-directions-${index + 1}">
+                    <h4 id="research-detail-directions-${index + 1}">Research directions</h4>
+                    <div class="research-detail__tags">${tagLinks(paper)}</div>
+                </section>
+                <a class="research-detail__link" href="${paper.url}" target="_blank" rel="noopener noreferrer"
+                    aria-label="Open the original publication for ${paper.title}">Learn More</a>
             </div>`;
         const detailRecord = panel.closest('.research-detail');
         const video = panel.querySelector('video');
@@ -297,26 +330,53 @@
         detailIndex = index;
         setActive(index);
         renderDetail(index);
+        window.clearTimeout(detailFlipTimer);
+        window.clearTimeout(detailFocusTimer);
+        dialog.classList.remove('is-ready', 'is-flipped');
+        dialog.inert = false;
         dialog.setAttribute('aria-hidden', 'false');
         document.body.classList.add('research-detail-open');
+        records.forEach(function (record, recordIndex) {
+            const cover = record.querySelector('.research-record__cover');
+            if (cover) cover.setAttribute('aria-expanded', String(recordIndex === index));
+            setVideoState(record, false);
+        });
+        window.requestAnimationFrame(function () {
+            dialog.classList.add('is-ready');
+            if (motionQuery.matches) {
+                dialog.classList.add('is-flipped');
+            } else {
+                detailFlipTimer = window.setTimeout(function () {
+                    dialog.classList.add('is-flipped');
+                }, 140);
+            }
+        });
         if (pushHistory) {
             window.history.pushState({ researchDetail: index }, '', `#research-${index + 1}`);
         }
-        window.setTimeout(function () {
+        detailFocusTimer = window.setTimeout(function () {
             const close = dialog.querySelector('.research-detail__close');
             if (close) close.focus();
-        }, motionQuery.matches ? 0 : 280);
+        }, motionQuery.matches ? 0 : 80);
     }
 
     function hideDetail(restoreFocus) {
         const dialog = document.querySelector('.research-detail');
         if (!dialog || dialog.getAttribute('aria-hidden') === 'true') return;
-        const video = dialog.querySelector('video');
-        if (video) video.pause();
+        window.clearTimeout(detailFlipTimer);
+        window.clearTimeout(detailFocusTimer);
+        dialog.querySelectorAll('video').forEach(function (video) { video.pause(); });
         dialog.classList.remove('is-video-playing');
+        dialog.classList.remove('is-ready', 'is-flipped');
+        dialog.inert = true;
         dialog.setAttribute('aria-hidden', 'true');
         document.body.classList.remove('research-detail-open');
+        records.forEach(function (record) {
+            const cover = record.querySelector('.research-record__cover');
+            if (cover) cover.setAttribute('aria-expanded', 'false');
+        });
         detailIndex = -1;
+        updateRecords();
         if (restoreFocus && detailReturnFocus && typeof detailReturnFocus.focus === 'function') detailReturnFocus.focus();
     }
 

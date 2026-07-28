@@ -33,14 +33,14 @@
         if (!document.querySelector('link[data-immersive-round3]')) {
             const stylesheet = document.createElement('link');
             stylesheet.rel = 'stylesheet';
-            stylesheet.href = new URL('css/immersive-round3.css?v=20260728-r10', projectRoot).href;
+            stylesheet.href = new URL('css/immersive-round3.css?v=20260728-r11', projectRoot).href;
             stylesheet.dataset.immersiveRound3 = 'styles';
             document.head.appendChild(stylesheet);
         }
 
         if (!document.querySelector('script[data-immersive-round3]')) {
             const roundThreeScript = document.createElement('script');
-            roundThreeScript.src = new URL('js/immersive-round3.js?v=20260728-r10', projectRoot).href;
+            roundThreeScript.src = new URL('js/immersive-round3.js?v=20260728-r11', projectRoot).href;
             roundThreeScript.async = false;
             roundThreeScript.dataset.immersiveRound3 = 'runtime';
             document.head.appendChild(roundThreeScript);

@@ -22,6 +22,9 @@
     --air-radius-lg: 34px;
     --air-shadow: 0 24px 80px rgba(28, 46, 58, 0.12);
     --air-font: "Bricolage Grotesque", Cabin, "Segoe UI", sans-serif;
+    --font-display: var(--air-font);
+    --font-body: var(--air-font);
+    --font-sans: var(--air-font);
     --air-mono: "B612 Mono", "SFMono-Regular", Consolas, monospace;
     --air-ease: cubic-bezier(0.22, 1, 0.36, 1);
 }
@@ -64,6 +67,27 @@ input,
 textarea,
 select {
     font-family: inherit;
+}
+
+/* The legacy template assigns Cabin directly to headings; this final layer enforces the selected site font. */
+html.immersive-airspace-round3 body,
+html.immersive-airspace-round3 h1,
+html.immersive-airspace-round3 h2,
+html.immersive-airspace-round3 h3,
+html.immersive-airspace-round3 h4,
+html.immersive-airspace-round3 h5,
+html.immersive-airspace-round3 h6,
+html.immersive-airspace-round3 .h1,
+html.immersive-airspace-round3 .h2,
+html.immersive-airspace-round3 .h3,
+html.immersive-airspace-round3 .h4,
+html.immersive-airspace-round3 .h5,
+html.immersive-airspace-round3 .h6,
+html.immersive-airspace-round3 button,
+html.immersive-airspace-round3 input,
+html.immersive-airspace-round3 textarea,
+html.immersive-airspace-round3 select {
+    font-family: var(--air-font) !important;
 }
 
 a:focus-visible,
@@ -560,7 +584,7 @@ body > .airspace-full-menu {
 }
 
 .research-airspace-stage {
-    min-height: 760px;
+    min-height: 860px;
     outline: none;
     perspective: 1400px;
     position: relative;
@@ -572,7 +596,7 @@ body > .airspace-full-menu {
     font-family: var(--air-mono);
     font-size: 0.68rem;
     letter-spacing: 0.1em;
-    margin: 0 auto 30px;
+    margin: 0 auto 54px;
     text-align: center;
     text-transform: uppercase;
 }
@@ -589,7 +613,7 @@ body > .airspace-full-menu {
         rotate(var(--record-rotate, 0deg))
         scale(var(--record-scale, 1));
     transition: transform 720ms var(--air-ease), opacity 480ms ease, filter 480ms ease;
-    width: clamp(260px, 31vw, 430px);
+    width: clamp(270px, 27vw, 390px);
     z-index: var(--record-layer, 1);
 }
 
@@ -608,7 +632,7 @@ body > .airspace-full-menu {
     box-shadow: var(--air-shadow);
     cursor: pointer;
     display: block;
-    height: clamp(340px, 43vw, 510px);
+    height: clamp(360px, 38vw, 500px);
     overflow: hidden;
     padding: 0;
     position: relative;
@@ -650,7 +674,7 @@ body > .airspace-full-menu {
 
 .research-record__summary {
     opacity: 0;
-    padding: 22px 4px 0;
+    padding: 28px 4px 0;
     transform: translateY(12px);
     transition: opacity 320ms ease, transform 420ms var(--air-ease);
 }
@@ -677,7 +701,7 @@ body > .airspace-full-menu {
 
 .research-airspace-controls {
     align-items: center;
-    bottom: 12px;
+    bottom: 24px;
     display: flex;
     gap: 10px;
     justify-content: center;
@@ -838,6 +862,203 @@ body > .research-detail {
     top: 22px;
     width: 48px;
     z-index: 4;
+}
+
+/* Round 3 v2: a visible media-to-detail flip with a bright, readable back face. */
+.research-detail {
+    background: rgba(229, 235, 233, 0.9);
+    perspective: 2200px;
+}
+
+.research-detail__stage {
+    height: min(760px, calc(100svh - 88px));
+    margin: auto;
+    max-width: 1120px;
+    perspective: 2200px;
+    width: 100%;
+}
+
+.research-detail__flipper {
+    height: 100%;
+    position: relative;
+    transform: translateY(44px) scale(0.78) rotateY(0deg);
+    transform-style: preserve-3d;
+    transition: transform 720ms var(--air-ease);
+    width: 100%;
+}
+
+.research-detail.is-ready .research-detail__flipper {
+    transform: translateY(0) scale(1) rotateY(0deg);
+}
+
+.research-detail.is-ready.is-flipped .research-detail__flipper {
+    transform: translateY(0) scale(1) rotateY(180deg);
+}
+
+.research-detail__face {
+    backface-visibility: hidden;
+    border-radius: var(--air-radius-lg);
+    inset: 0;
+    overflow: hidden;
+    position: absolute;
+    transform-style: preserve-3d;
+}
+
+.research-detail__front {
+    align-items: center;
+    display: flex;
+    justify-content: center;
+    pointer-events: none;
+}
+
+.research-detail__front-card {
+    background: var(--air-surface-solid);
+    border: 1px solid rgba(16, 38, 57, 0.16);
+    border-radius: 6px;
+    box-shadow: 0 34px 90px rgba(25, 43, 54, 0.24);
+    height: min(500px, 68vh);
+    overflow: hidden;
+    transform: translateZ(70px);
+    width: min(390px, 72vw);
+}
+
+.research-detail__front-card img {
+    height: 100%;
+    object-fit: cover;
+    width: 100%;
+}
+
+.research-detail__back {
+    background: var(--air-surface-solid);
+    pointer-events: none;
+    transform: rotateY(180deg);
+}
+
+.research-detail.is-flipped .research-detail__back {
+    pointer-events: auto;
+}
+
+.research-detail__panel {
+    border-radius: inherit;
+    height: 100%;
+    margin: 0;
+    max-width: none;
+    transform: none;
+    transition: none;
+}
+
+.research-detail[aria-hidden="false"] .research-detail__panel {
+    transform: none;
+}
+
+.research-detail__media {
+    min-height: 100%;
+}
+
+.research-detail__copy {
+    max-height: 100%;
+    overflow: auto;
+    padding: clamp(34px, 5vw, 68px);
+}
+
+.research-detail__copy h3 {
+    font-size: clamp(1.9rem, 3.6vw, 3.45rem);
+    line-height: 1.02;
+    margin: 14px 0 22px;
+}
+
+.research-detail__facts {
+    display: grid;
+    gap: 12px;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    margin: 0 0 24px;
+}
+
+.research-detail__facts div {
+    border-top: 1px solid var(--air-line);
+    padding-top: 10px;
+}
+
+.research-detail__facts dt,
+.research-detail__section h4 {
+    color: var(--air-muted);
+    font-family: var(--air-mono);
+    font-size: 0.65rem;
+    font-weight: 500;
+    letter-spacing: 0.11em;
+    margin: 0 0 6px;
+    text-transform: uppercase;
+}
+
+.research-detail__facts dd {
+    color: var(--air-ink);
+    font-size: 0.92rem;
+    margin: 0;
+}
+
+.research-detail__section {
+    margin-top: 20px;
+}
+
+.research-detail__tags {
+    margin: 10px 0 0;
+}
+
+.research-detail__link {
+    margin-top: 28px;
+}
+
+.research-detail__close {
+    border-radius: 999px;
+    gap: 8px;
+    height: 48px;
+    padding: 0 18px;
+    position: fixed;
+    right: 22px;
+    top: 20px;
+    width: auto;
+    z-index: 5;
+}
+
+.research-detail__close span:last-child {
+    font-size: 0.78rem;
+    font-weight: 650;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+@media (max-width: 575.98px) {
+    .research-detail__stage {
+        height: calc(100svh - 24px);
+    }
+
+    .research-detail__front-card {
+        height: min(430px, 66vh);
+        width: min(300px, 76vw);
+    }
+
+    .research-detail__back {
+        overflow: auto;
+    }
+
+    .research-detail__panel {
+        height: auto;
+        min-height: 100%;
+    }
+
+    .research-detail__facts {
+        grid-template-columns: 1fr;
+    }
+
+    .research-detail__copy {
+        max-height: none;
+        overflow: visible;
+    }
+
+    .research-detail__close {
+        right: 12px;
+        top: 12px;
+    }
 }
 
 .group-page .member-card,
@@ -1109,5 +1330,14 @@ body > .research-detail {
 
     .immersive-radar::after {
         display: none;
+    }
+
+    .research-detail__front {
+        display: none;
+    }
+
+    .research-detail__flipper {
+        transform: rotateY(180deg) !important;
+        transition: none !important;
     }
 }
