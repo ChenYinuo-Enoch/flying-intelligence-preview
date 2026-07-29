@@ -7,7 +7,9 @@ const papers = [
         img: "files/images/UAVS.png",
         date: "Oct. 2025",
         authors: '<a href="group.html#yonglin-tian">Yonglin Tian</a>, Fei Lin, Yiduo Li, Tengchao Zhang, <a href="group.html#qiyao-zhang">Qiyao Zhang</a>, Xuan Fu, Jun Huang, Xingyuan Dai, Yutong Wang, Chunwei Tian, Bai Li, Yisheng Lv, Levente Kovács, Fei-Yue Wang*',
-        tags: ["Low-altitude Perception", "Low-altitude Coordination", "Low-altitude Maneuvering", "Low-altitude Operation"]
+        tags: ["Low-altitude Perception", "Low-altitude Coordination", "Low-altitude Maneuvering", "Low-altitude Operation"],
+        coverPosition: "50% 50%",
+        mediaFitMode: "contain"
     },
     {
         title: "AIR-VLA: Vision-Language-Action Systems for Aerial Manipulation",
@@ -16,7 +18,9 @@ const papers = [
         img: "files/images/AIR-VLA.png",
         date: "Jan. 2026",
         authors: '<a href="group.html#jianli-sun">Jianli Sun</a>, Bin Tian, <a href="group.html#qiyao-zhang">Qiyao Zhang</a>, <a href="group.html#chengxiang-li">Chengxiang Li</a>, <a href="group.html#zihan-song">Zihan Song</a>, Zhiyong Cui, Yisheng Lv, <a href="group.html#yonglin-tian">Yonglin Tian*</a>',
-        tags: ["Low-altitude Operation"]
+        tags: ["Low-altitude Operation"],
+        coverPosition: "50% 48%",
+        mediaFitMode: "cover"
     },
     {
         title: "UAV-Track VLA: Embodied Aerial Tracking via Vision-Language-Action Models",
@@ -26,7 +30,9 @@ const papers = [
         date: "Apr. 2026",
         authors: '<a href="group.html#qiyao-zhang">Qiyao Zhang</a>, Shuhua Zheng, <a href="group.html#jianli-sun">Jianli Sun</a>, <a href="group.html#chengxiang-li">Chengxiang Li</a>, <a href="group.html#xianke-wu">Xianke Wu</a>, <a href="group.html#zihan-song">Zihan Song</a>, Zhiyong Cui, Yisheng Lv, <a href="group.html#yonglin-tian">Yonglin Tian*</a>',
         tags: ["Low-altitude Maneuvering"],
-        video: "files/videos/uav-track-vla.mp4"
+        video: "files/videos/uav-track-vla.mp4",
+        coverPosition: "50% 48%",
+        mediaFitMode: "contain"
     },
     {
         title: "OpenCOOD-Air: Prompting Heterogeneous Ground-Air Collaborative Perception with Spatial Conversion and Offset Prediction",
@@ -36,7 +42,9 @@ const papers = [
         date: "Mar. 2026",
         authors: '<a href="group.html#xianke-wu">Xianke Wu</a>, Songlin Bai, <a href="group.html#chengxiang-li">Chengxiang Li</a>, Zhiyao Luo, Yulin Tian, Fenghua Zhu, Yisheng Lv, <a href="group.html#yonglin-tian">Yonglin Tian*</a>',
         tags: ["Low-altitude Perception"],
-        video: "files/videos/opencood-air.mp4"
+        video: "files/videos/opencood-air.mp4",
+        coverPosition: "50% 50%",
+        mediaFitMode: "contain"
     },
     {
         title: "CogRail: Benchmarking VLMs in Cognitive Intrusion Perception for Intelligent Railway Transportation Systems",
@@ -45,7 +53,9 @@ const papers = [
         img: "files/images/CogRail.png",
         date: "Jan. 2026",
         authors: '<a href="group.html#yonglin-tian">Yonglin Tian</a>, <a href="group.html#qiyao-zhang">Qiyao Zhang</a>, Wei Xu, Yutong Wang, <a href="group.html#yihao-wu">Yihao Wu</a>, <a href="group.html#xinyi-li">Xinyi Li</a>, Xingyuan Dai, Hui Zhang, Zhiyong Cui, Baoqing Guo, Zujun Yu, Yisheng Lv*',
-        tags: ["Low-altitude Perception"]
+        tags: ["Low-altitude Perception"],
+        coverPosition: "50% 46%",
+        mediaFitMode: "cover"
     },
     {
         title: "LogisticsVLN: Vision-Language Navigation For Low-Altitude Terminal Delivery Based on Agentic UAVs",
@@ -54,6 +64,8 @@ const papers = [
         img: "files/images/LogisticsVLN.png",
         date: "May 2025",
         authors: '<a href="group.html#xinyuan-zhang">Xinyuan Zhang</a>, <a href="group.html#yonglin-tian">Yonglin Tian</a>, Fei Lin, Yue Liu, Jing Ma, Kornelia S ´ ara Szatm ´ ary, Fei-Yue Wang*',
-        tags: ["Low-altitude Maneuvering"]
+        tags: ["Low-altitude Maneuvering"],
+        coverPosition: "50% 50%",
+        mediaFitMode: "contain"
     },
 ];

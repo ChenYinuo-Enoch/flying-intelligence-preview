@@ -4,6 +4,7 @@
     'use strict';
 
     const motionQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
+    const hoverMediaQuery = window.matchMedia('(hover: hover) and (pointer: fine)');
     let activeIndex = 0;
     let detailIndex = -1;
     let stage = null;
@@ -11,10 +12,22 @@
     let records = [];
     let dragStartX = 0;
     let dragMoved = false;
+    let dragCaptureTarget = null;
     let wheelLocked = false;
+    const DETAIL_STATES = Object.freeze({
+        IDLE: 'IDLE',
+        FOCUSED: 'FOCUSED',
+        OPENING: 'OPENING',
+        DETAIL_OPEN: 'DETAIL_OPEN',
+        CLOSING: 'CLOSING'
+    });
     let detailReturnFocus = null;
-    let detailFlipTimer = 0;
+    let detailState = DETAIL_STATES.IDLE;
+    let detailStartTimer = 0;
+    let detailAnimationTimer = 0;
     let detailFocusTimer = 0;
+    let detailOrigin = null;
+    let restoreFocusAfterClose = true;
 
     function relativeOffset(index) {
         const total = records.length;
@@ -33,10 +46,10 @@
         return {
             x: offset * step,
             y: offset === 0 ? -10 : (offset % 2 ? 32 : -26) + distance * 6,
-            z: offset === 0 ? 180 : 40 - distance * 24,
+            z: 0,
             rotate: offset * (compact ? 3.8 : 4.8),
             scale: offset === 0 ? 1 : Math.max(0.56, 0.8 - distance * 0.08),
-            opacity: distance > 2 ? 0 : Math.max(0.34, 0.82 - distance * 0.2),
+            opacity: offset === 0 ? 1 : (distance > 2 ? 0 : Math.max(0.34, 0.82 - distance * 0.2)),
             layer: 20 - distance
         };
     }
@@ -48,7 +61,7 @@
     function setVideoState(record, shouldPlay) {
         const video = videoFor(record);
         if (!video) return;
-        if (shouldPlay) {
+        if (shouldPlay && !motionQuery.matches) {
             const playResult = video.play();
             if (playResult && typeof playResult.then === 'function') {
                 playResult.then(function () {
@@ -61,6 +74,11 @@
             video.pause();
             record.classList.remove('is-video-playing');
         }
+    }
+
+    function passiveActiveMedia(index) {
+        return !hoverMediaQuery.matches && index === activeIndex &&
+            (detailState === DETAIL_STATES.IDLE || detailState === DETAIL_STATES.FOCUSED);
     }
 
     function updateRecords(options) {
@@ -84,13 +102,18 @@
                 cover.setAttribute('aria-current', active ? 'true' : 'false');
                 cover.setAttribute('aria-expanded', String(detailIndex === index));
             }
-            setVideoState(record, active);
+            setVideoState(record, passiveActiveMedia(index));
         });
         if (status) status.textContent = `${String(activeIndex + 1).padStart(2, '0')} / ${String(records.length).padStart(2, '0')}`;
         if (focusActive && records[activeIndex]) records[activeIndex].querySelector('.research-record__cover').focus();
     }
 
+    function detailLocked() {
+        return detailState === DETAIL_STATES.OPENING || detailState === DETAIL_STATES.DETAIL_OPEN || detailState === DETAIL_STATES.CLOSING;
+    }
+
     function setActive(nextIndex, options) {
+        if (detailLocked() && !(options && options.force)) return;
         const total = records.length;
         activeIndex = (nextIndex + total) % total;
         updateRecords(options);
@@ -106,12 +129,33 @@
         }).join('');
     }
 
-    function paperMedia(paper) {
+    function mediaType(source) {
+        if (/\.webm(?:$|\?)/i.test(source || '')) return 'video/webm';
+        return 'video/mp4';
+    }
+
+    function mediaFrame(paper, context) {
+        const fitMode = paper.mediaFitMode === 'cover' ? 'cover' : 'contain';
+        const mediaPosition = paper.coverPosition || '50% 50%';
+        const detail = context === 'detail';
+        const front = context === 'front';
+        const frameClass = detail ? 'research-detail__media-frame' : (front ? 'research-detail__front-media' : 'research-record__media');
+        const backdrop = fitMode === 'contain'
+            ? `<img class="research-media-backdrop" src="${paper.img}" alt="" aria-hidden="true" loading="lazy" decoding="async">`
+            : '';
+        const video = paper.video
+            ? `<video class="research-media-foreground research-media-video" muted loop playsinline preload="metadata" poster="${paper.img}"${detail ? ' controls' : ''}><source src="${paper.video}" type="${mediaType(paper.video)}"></video>`
+            : '';
         return `
-            <div class="research-record__media">
-                <img src="${paper.img}" alt="" loading="lazy" decoding="async">
-                ${paper.video ? `<video muted loop playsinline preload="metadata" poster="${paper.img}"><source src="${paper.video}" type="video/mp4"></video>` : ''}
+            <div class="research-media-frame ${frameClass}" data-media-fit="${fitMode}" style="--media-position: ${mediaPosition};">
+                ${backdrop}
+                <img class="research-media-foreground research-media-poster" src="${paper.img}" alt="" loading="lazy" decoding="async">
+                ${video}
             </div>`;
+    }
+
+    function paperMedia(paper) {
+        return mediaFrame(paper, 'card');
     }
 
     function renderPapers() {
@@ -163,17 +207,41 @@
         records.forEach(function (record, index) {
             const cover = record.querySelector('.research-record__cover');
             cover.addEventListener('click', function () {
-                if (dragMoved) return;
+                if (dragMoved || detailLocked()) return;
                 if (index !== activeIndex) setActive(index, { focusActive: true });
                 else openDetail(index, true);
             });
-            cover.addEventListener('pointerenter', function () { setVideoState(record, true); });
-            cover.addEventListener('pointerleave', function () { setVideoState(record, index === activeIndex); });
-            cover.addEventListener('focus', function () { setVideoState(record, true); });
-            cover.addEventListener('blur', function () { setVideoState(record, index === activeIndex); });
+            cover.addEventListener('pointerenter', function () {
+                if (!detailLocked()) setVideoState(record, true);
+            });
+            cover.addEventListener('pointerleave', function () {
+                setVideoState(record, !detailLocked() && passiveActiveMedia(index));
+            });
+            cover.addEventListener('focus', function () {
+                if (detailState === DETAIL_STATES.IDLE) detailState = DETAIL_STATES.FOCUSED;
+                if (!detailLocked()) setVideoState(record, true);
+            });
+            cover.addEventListener('blur', function () {
+                if (detailState === DETAIL_STATES.FOCUSED) detailState = DETAIL_STATES.IDLE;
+                setVideoState(record, !detailLocked() && passiveActiveMedia(index));
+            });
+        });
+
+        stage.addEventListener('click', function (event) {
+            if (event.target.closest('.research-record__cover') || dragMoved || detailLocked()) return;
+            const activeCover = records[activeIndex] && records[activeIndex].querySelector('.research-record__cover');
+            if (!activeCover) return;
+            const rect = activeCover.getBoundingClientRect();
+            const hitsVisibleCover =
+                event.clientX >= rect.left &&
+                event.clientX <= rect.right &&
+                event.clientY >= rect.top &&
+                event.clientY <= rect.bottom;
+            if (hitsVisibleCover) openDetail(activeIndex, true);
         });
 
         stage.addEventListener('keydown', function (event) {
+            if (detailLocked()) return;
             if (event.key === 'ArrowRight') {
                 event.preventDefault();
                 setActive(activeIndex + 1, { focusActive: true });
@@ -193,6 +261,7 @@
         });
 
         stage.addEventListener('wheel', function (event) {
+            if (detailLocked()) return;
             const horizontalIntent = Math.abs(event.deltaX) > Math.abs(event.deltaY) || event.shiftKey;
             if (!horizontalIntent || wheelLocked) return;
             event.preventDefault();
@@ -202,21 +271,32 @@
         }, { passive: false });
 
         stage.addEventListener('pointerdown', function (event) {
-            if (event.button !== 0) return;
+            if (detailLocked() || event.button !== 0) return;
             dragStartX = event.clientX;
             dragMoved = false;
-            stage.setPointerCapture(event.pointerId);
+            dragCaptureTarget = event.target.closest('.research-record__cover') || stage;
+            dragCaptureTarget.setPointerCapture(event.pointerId);
         });
         stage.addEventListener('pointermove', function (event) {
-            if (!stage.hasPointerCapture(event.pointerId)) return;
+            if (!dragCaptureTarget || !dragCaptureTarget.hasPointerCapture(event.pointerId)) return;
             if (Math.abs(event.clientX - dragStartX) > 8) dragMoved = true;
         });
         stage.addEventListener('pointerup', function (event) {
-            if (!stage.hasPointerCapture(event.pointerId)) return;
+            if (!dragCaptureTarget || !dragCaptureTarget.hasPointerCapture(event.pointerId)) return;
             const delta = event.clientX - dragStartX;
-            stage.releasePointerCapture(event.pointerId);
-            if (Math.abs(delta) > 48) setActive(activeIndex + (delta < 0 ? 1 : -1));
+            const swiped = Math.abs(delta) > 48;
+            dragCaptureTarget.releasePointerCapture(event.pointerId);
+            dragCaptureTarget = null;
+            dragMoved = swiped;
+            if (swiped) setActive(activeIndex + (delta < 0 ? 1 : -1));
             window.setTimeout(function () { dragMoved = false; }, 0);
+        });
+        stage.addEventListener('pointercancel', function (event) {
+            if (dragCaptureTarget && dragCaptureTarget.hasPointerCapture(event.pointerId)) {
+                dragCaptureTarget.releasePointerCapture(event.pointerId);
+            }
+            dragCaptureTarget = null;
+            dragMoved = false;
         });
 
         let resizeFrame = 0;
@@ -232,9 +312,25 @@
     function detailMedia(paper) {
         return `
             <div class="research-detail__media">
-                <img src="${paper.img}" alt="${paper.title}">
-                ${paper.video ? `<video muted loop playsinline preload="metadata" poster="${paper.img}"><source src="${paper.video}" type="video/mp4"></video>` : ''}
+                ${mediaFrame(paper, 'detail')}
             </div>`;
+    }
+
+    function detailLinks(paper) {
+        const candidates = [
+            ['Open publication', paper.paperUrl || paper.url],
+            ['Open project', paper.projectUrl],
+            ['Open GitHub', paper.githubUrl],
+            ['Open video', paper.videoUrl]
+        ];
+        const seen = new Set();
+        return candidates.filter(function (entry) {
+            if (!entry[1] || seen.has(entry[1])) return false;
+            seen.add(entry[1]);
+            return true;
+        }).map(function (entry) {
+            return `<a class="research-detail__link" href="${entry[1]}" target="_blank" rel="noopener noreferrer">${entry[0]}</a>`;
+        }).join('');
     }
 
     function createDetailDialog() {
@@ -242,10 +338,12 @@
         const dialog = document.createElement('div');
         dialog.className = 'research-detail';
         dialog.id = 'research-detail';
+        dialog.dataset.state = DETAIL_STATES.IDLE;
         dialog.setAttribute('role', 'dialog');
         dialog.setAttribute('aria-modal', 'true');
         dialog.setAttribute('aria-hidden', 'true');
         dialog.setAttribute('aria-labelledby', 'research-detail-title');
+        dialog.setAttribute('aria-describedby', 'research-detail-description');
         dialog.inert = true;
         dialog.innerHTML = `
             <button type="button" class="research-detail__close" aria-label="Back to Recent Research">
@@ -272,8 +370,10 @@
                 closeDetail(true);
                 return;
             }
-            if (event.key !== 'Tab') return;
-            const focusable = Array.from(dialog.querySelectorAll('a[href], button:not([disabled])'));
+            if (event.key !== 'Tab' || detailState === DETAIL_STATES.CLOSING) return;
+            const focusable = Array.from(dialog.querySelectorAll('a[href], button:not([disabled]), video[controls]')).filter(function (element) {
+                return !element.closest('[aria-hidden="true"]');
+            });
             if (!focusable.length) return;
             const first = focusable[0];
             const last = focusable[focusable.length - 1];
@@ -287,106 +387,199 @@
         });
     }
 
+    function setBackgroundInert(inert) {
+        Array.from(document.body.children).forEach(function (element) {
+            if (element.classList.contains('research-detail') || element.tagName === 'SCRIPT') return;
+            if (inert) {
+                if (!element.inert) {
+                    element.dataset.researchDetailInert = 'true';
+                    element.inert = true;
+                }
+            } else if (element.dataset.researchDetailInert === 'true') {
+                element.inert = false;
+                delete element.dataset.researchDetailInert;
+            }
+        });
+    }
+
+    function setDetailState(nextState) {
+        detailState = nextState;
+        const dialog = document.querySelector('.research-detail');
+        if (dialog) dialog.dataset.state = nextState;
+    }
+
+    function captureDetailOrigin(index) {
+        const record = records[index];
+        const cover = record && record.querySelector('.research-record__cover');
+        if (!cover) return null;
+        const rect = cover.getBoundingClientRect();
+        const targetWidth = window.innerWidth < 600
+            ? Math.max(1, window.innerWidth - 24)
+            : Math.min(window.innerWidth * 0.86, 1120);
+        const targetHeight = Math.min(targetWidth / 1.6, window.innerHeight - 64);
+        const fittedWidth = targetHeight * 1.6;
+        return {
+            index: index,
+            x: rect.left + rect.width / 2 - window.innerWidth / 2,
+            y: rect.top + rect.height / 2 - window.innerHeight / 2,
+            scale: Math.max(0.12, Math.min(1, rect.width / Math.max(fittedWidth, 1))),
+            scrollY: window.scrollY,
+            transform: record.style.transform,
+            zIndex: record.style.zIndex
+        };
+    }
+
+    function applyDetailOrigin(dialog, origin) {
+        dialog.style.setProperty('--detail-origin-x', `${origin ? origin.x : 0}px`);
+        dialog.style.setProperty('--detail-origin-y', `${origin ? origin.y : 0}px`);
+        dialog.style.setProperty('--detail-origin-scale', origin ? origin.scale : 0.34);
+    }
+
     function renderDetail(index) {
         const dialog = document.querySelector('.research-detail');
         const panel = dialog.querySelector('.research-detail__panel');
         const frontCard = dialog.querySelector('.research-detail__front-card');
         const paper = papers[index];
-        frontCard.innerHTML = `<img src="${paper.img}" alt="">`;
+        const yearMatch = `${paper.date || ''} ${paper.venue || ''}`.match(/\b(?:19|20)\d{2}\b/);
+        frontCard.innerHTML = mediaFrame(paper, 'front');
         panel.innerHTML = `
             ${detailMedia(paper)}
-            <div class="research-detail__copy">
+            <div class="research-detail__copy" id="research-detail-description">
                 <div class="airspace-kicker">Research record ${String(index + 1).padStart(2, '0')} / ${String(papers.length).padStart(2, '0')}</div>
-                <h3 id="research-detail-title">${paper.title}</h3>
-                <dl class="research-detail__facts">
-                    <div><dt>Published</dt><dd>${paper.date || ''}</dd></div>
-                    <div><dt>Venue</dt><dd>${paper.venue || ''}</dd></div>
-                </dl>
-                <section class="research-detail__section" aria-labelledby="research-detail-authors-${index + 1}">
+                <h3 id="research-detail-title" tabindex="-1">${paper.title}</h3>
+                <section class="research-detail__section research-detail__section--authors" aria-labelledby="research-detail-authors-${index + 1}">
                     <h4 id="research-detail-authors-${index + 1}">Authors</h4>
                     <div class="research-detail__authors">${processAuthors(paper.authors)}</div>
                 </section>
+                <dl class="research-detail__facts">
+                    <div><dt>Year</dt><dd>${yearMatch ? yearMatch[0] : ''}</dd></div>
+                    <div><dt>Published</dt><dd>${paper.date || ''}</dd></div>
+                    <div><dt>Venue</dt><dd>${paper.venue || ''}</dd></div>
+                </dl>
                 <section class="research-detail__section" aria-labelledby="research-detail-directions-${index + 1}">
                     <h4 id="research-detail-directions-${index + 1}">Research directions</h4>
                     <div class="research-detail__tags">${tagLinks(paper)}</div>
                 </section>
-                <a class="research-detail__link" href="${paper.url}" target="_blank" rel="noopener noreferrer"
-                    aria-label="Open the original publication for ${paper.title}">Learn More</a>
+                <div class="research-detail__links">${detailLinks(paper)}</div>
             </div>`;
-        const detailRecord = panel.closest('.research-detail');
-        const video = panel.querySelector('video');
-        if (video) {
-            const playResult = video.play();
-            if (playResult && typeof playResult.then === 'function') {
-                playResult.then(function () { detailRecord.classList.add('is-video-playing'); }).catch(function () {});
-            }
+    }
+
+    function pauseDetailMedia() {
+        const dialog = document.querySelector('.research-detail');
+        if (!dialog) return;
+        dialog.querySelectorAll('video').forEach(function (video) {
+            video.pause();
+        });
+        dialog.classList.remove('is-video-playing');
+    }
+
+    function playDetailMedia() {
+        if (motionQuery.matches) return;
+        const dialog = document.querySelector('.research-detail');
+        const video = dialog && dialog.querySelector('.research-detail__back video');
+        if (!video) return;
+        const playResult = video.play();
+        if (playResult && typeof playResult.then === 'function') {
+            playResult.then(function () { dialog.classList.add('is-video-playing'); }).catch(function () {});
         }
     }
 
     function openDetail(index, pushHistory) {
         const dialog = document.querySelector('.research-detail');
-        if (!dialog || !papers[index]) return;
-        detailReturnFocus = document.activeElement;
-        detailIndex = index;
-        setActive(index);
-        renderDetail(index);
-        window.clearTimeout(detailFlipTimer);
+        if (!dialog || !papers[index] || detailLocked()) return;
+        window.clearTimeout(detailStartTimer);
+        window.clearTimeout(detailAnimationTimer);
         window.clearTimeout(detailFocusTimer);
-        dialog.classList.remove('is-ready', 'is-flipped');
+        detailReturnFocus = document.activeElement;
+        detailOrigin = captureDetailOrigin(index);
+        detailIndex = index;
+        activeIndex = index;
+        setDetailState(DETAIL_STATES.OPENING);
+        updateRecords();
+        renderDetail(index);
+        applyDetailOrigin(dialog, detailOrigin);
+        dialog.className = 'research-detail is-preparing';
         dialog.inert = false;
         dialog.setAttribute('aria-hidden', 'false');
         document.body.classList.add('research-detail-open');
+        setBackgroundInert(true);
         records.forEach(function (record, recordIndex) {
+            record.classList.toggle('is-detail-source', recordIndex === index);
             const cover = record.querySelector('.research-record__cover');
             if (cover) cover.setAttribute('aria-expanded', String(recordIndex === index));
             setVideoState(record, false);
         });
-        window.requestAnimationFrame(function () {
-            dialog.classList.add('is-ready');
-            if (motionQuery.matches) {
-                dialog.classList.add('is-flipped');
-            } else {
-                detailFlipTimer = window.setTimeout(function () {
-                    dialog.classList.add('is-flipped');
-                }, 140);
-            }
-        });
-        if (pushHistory) {
+        void dialog.offsetWidth;
+
+        if (motionQuery.matches) {
+            dialog.classList.remove('is-preparing');
+            dialog.classList.add('is-reduced', 'is-detail-open');
+            setDetailState(DETAIL_STATES.DETAIL_OPEN);
+        } else {
+            detailStartTimer = window.setTimeout(function () {
+                if (detailState !== DETAIL_STATES.OPENING) return;
+                dialog.classList.remove('is-preparing');
+                dialog.classList.add('is-opening');
+            }, 32);
+            detailAnimationTimer = window.setTimeout(function () {
+                if (detailState !== DETAIL_STATES.OPENING) return;
+                dialog.classList.remove('is-opening');
+                dialog.classList.add('is-detail-open');
+                setDetailState(DETAIL_STATES.DETAIL_OPEN);
+                playDetailMedia();
+            }, 940);
+        }
+        if (pushHistory && !(window.history.state && window.history.state.researchDetail === index)) {
             window.history.pushState({ researchDetail: index }, '', `#research-${index + 1}`);
         }
         detailFocusTimer = window.setTimeout(function () {
             const close = dialog.querySelector('.research-detail__close');
             if (close) close.focus();
-        }, motionQuery.matches ? 0 : 80);
+        }, motionQuery.matches ? 0 : 90);
     }
 
-    function hideDetail(restoreFocus) {
+    function finishDetailClose() {
         const dialog = document.querySelector('.research-detail');
-        if (!dialog || dialog.getAttribute('aria-hidden') === 'true') return;
-        window.clearTimeout(detailFlipTimer);
-        window.clearTimeout(detailFocusTimer);
-        dialog.querySelectorAll('video').forEach(function (video) { video.pause(); });
-        dialog.classList.remove('is-video-playing');
-        dialog.classList.remove('is-ready', 'is-flipped');
+        if (!dialog) return;
+        dialog.className = 'research-detail';
         dialog.inert = true;
         dialog.setAttribute('aria-hidden', 'true');
         document.body.classList.remove('research-detail-open');
+        setBackgroundInert(false);
         records.forEach(function (record) {
+            record.classList.remove('is-detail-source');
             const cover = record.querySelector('.research-record__cover');
             if (cover) cover.setAttribute('aria-expanded', 'false');
         });
         detailIndex = -1;
+        detailOrigin = null;
+        setDetailState(DETAIL_STATES.IDLE);
         updateRecords();
-        if (restoreFocus && detailReturnFocus && typeof detailReturnFocus.focus === 'function') detailReturnFocus.focus();
+        if (restoreFocusAfterClose && detailReturnFocus && typeof detailReturnFocus.focus === 'function') detailReturnFocus.focus();
+    }
+
+    function startDetailClose(restoreFocus) {
+        const dialog = document.querySelector('.research-detail');
+        if (!dialog || detailState === DETAIL_STATES.IDLE || detailState === DETAIL_STATES.CLOSING) return;
+        window.clearTimeout(detailStartTimer);
+        window.clearTimeout(detailAnimationTimer);
+        window.clearTimeout(detailFocusTimer);
+        restoreFocusAfterClose = restoreFocus;
+        pauseDetailMedia();
+        setDetailState(DETAIL_STATES.CLOSING);
+        dialog.classList.remove('is-preparing', 'is-opening', 'is-detail-open', 'is-reduced');
+        dialog.classList.add('is-closing');
+        detailAnimationTimer = window.setTimeout(finishDetailClose, motionQuery.matches ? 80 : 880);
     }
 
     function closeDetail(restoreFocus) {
-        if (detailIndex < 0) return;
-        if (window.history.state && typeof window.history.state.researchDetail === 'number') {
+        if (detailState === DETAIL_STATES.IDLE || detailState === DETAIL_STATES.CLOSING) return;
+        restoreFocusAfterClose = restoreFocus;
+        if (window.history.state && window.history.state.researchDetail === detailIndex) {
             window.history.back();
         } else {
             window.history.replaceState(null, '', `${window.location.pathname}${window.location.search}`);
-            hideDetail(restoreFocus);
+            startDetailClose(restoreFocus);
         }
     }
 
@@ -399,9 +592,9 @@
 
     window.addEventListener('popstate', function (event) {
         if (event.state && typeof event.state.researchDetail === 'number') {
-            openDetail(event.state.researchDetail, false);
+            if (detailState === DETAIL_STATES.IDLE) openDetail(event.state.researchDetail, false);
         } else {
-            hideDetail(true);
+            startDetailClose(restoreFocusAfterClose);
         }
     });
 

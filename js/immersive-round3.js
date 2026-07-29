@@ -129,7 +129,7 @@
     function wrapMotionText(element) {
         if (!element || element.dataset.motionLetters === 'ready') return;
         const accessibleLabel = element.textContent.trim().replace(/\s+/g, ' ');
-        if (accessibleLabel && !element.hasAttribute('aria-label')) element.setAttribute('aria-label', accessibleLabel);
+        if (accessibleLabel && !element.hasAttribute('aria-label') && !element.hasAttribute('aria-hidden')) element.setAttribute('aria-label', accessibleLabel);
         const walker = document.createTreeWalker(element, NodeFilter.SHOW_TEXT);
         const nodes = [];
         while (walker.nextNode()) {
@@ -163,15 +163,47 @@
         element.dataset.motionLetters = 'ready';
     }
 
+    function registerMotionText(selector, tier, strength) {
+        document.querySelectorAll(selector).forEach(function (element) {
+            wrapMotionText(element);
+            element.classList.add(`motion-text--${tier}`);
+            element.dataset.motionStrength = strength;
+        });
+    }
+
     function initializeMotionTypography() {
-        const selector = [
-            '.community-intro-title > span',
+        const wordmark = document.querySelector('.community-intro-title');
+        if (wordmark) {
+            const label = wordmark.textContent.trim().replace(/\s+/g, ' ');
+            wordmark.classList.add('interactive-wordmark');
+            wordmark.setAttribute('aria-label', label);
+            Array.from(wordmark.children).forEach(function (line) {
+                line.setAttribute('aria-hidden', 'true');
+                wrapMotionText(line);
+                line.classList.add('motion-text--wordmark');
+                line.dataset.motionStrength = '1.15';
+            });
+        }
+        registerMotionText([
+            '.publication-page .site-section > .container > .section-title h2',
+            '.resource-page .site-section > .container > .row:first-child .section-title h2',
+            '.direction-page #direction-title',
+            '.person-page .site-section > .container > .section-title h2',
+            '.group-page-title h2'
+        ].join(','), 'page', '0.82');
+        registerMotionText([
             '.section-title h2',
-            '.group-page-title',
             '.research-chart-item-title',
-            '.airspace-full-menu__links a'
-        ].join(',');
-        document.querySelectorAll(selector).forEach(wrapMotionText);
+            '.group-section-heading'
+        ].join(','), 'section', '0.62');
+        registerMotionText([
+            '.airspace-menu-trigger > span:last-child',
+            '.airspace-quick-links a',
+            '.airspace-full-menu__links a',
+            '.airspace-scroll-cue span',
+            '.group-year-navigation a',
+            '.publication-filter label'
+        ].join(','), 'control', '0.48');
     }
 
     function resetMotionText(element) {
@@ -194,18 +226,26 @@
             }
         });
         if (motionElement) {
-            const rect = motionElement.getBoundingClientRect();
-            const normalizedX = Math.max(-1, Math.min(1, (event.clientX - rect.left) / Math.max(rect.width, 1) * 2 - 1));
-            const normalizedY = Math.max(-1, Math.min(1, (event.clientY - rect.top) / Math.max(rect.height, 1) * 2 - 1));
             motionElement.classList.add('is-pointer-active');
-            const letters = Array.from(motionElement.querySelectorAll('.motion-letter'));
-            const midpoint = Math.max((letters.length - 1) / 2, 1);
-            letters.forEach(function (letter, index) {
-                const spread = (index - midpoint) / midpoint;
-                const x = normalizedX * (2.4 + Math.abs(spread) * 2.2);
-                const y = normalizedY * (1.6 + Math.abs(spread) * 1.7);
-                const rotation = normalizedX * spread * 2.6;
-                letter.style.transform = `translate3d(${x.toFixed(2)}px, ${y.toFixed(2)}px, 0) rotate(${rotation.toFixed(2)}deg)`;
+            const strength = Number(motionElement.dataset.motionStrength || 1);
+            const radius = motionElement.classList.contains('motion-text--wordmark') ? 180 : 112;
+            motionElement.querySelectorAll('.motion-letter').forEach(function (letter) {
+                const rect = letter.getBoundingClientRect();
+                const centerX = rect.left + rect.width / 2;
+                const centerY = rect.top + rect.height / 2;
+                const deltaX = centerX - event.clientX;
+                const deltaY = centerY - event.clientY;
+                const distance = Math.max(1, Math.hypot(deltaX, deltaY));
+                const proximity = Math.max(0, 1 - distance / radius);
+                if (!proximity) {
+                    letter.style.transform = '';
+                    return;
+                }
+                const x = deltaX / distance * 4.8 * strength * proximity;
+                const y = (-4.4 + deltaY / distance * 1.3) * strength * proximity;
+                const rotation = deltaX / distance * 3.2 * strength * proximity;
+                const scale = 1 + 0.035 * strength * proximity;
+                letter.style.transform = `translate3d(${x.toFixed(2)}px, ${y.toFixed(2)}px, 0) rotate(${rotation.toFixed(2)}deg) scale(${scale.toFixed(3)})`;
             });
         }
 
