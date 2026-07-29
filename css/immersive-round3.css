@@ -1422,6 +1422,10 @@ body {
     transform: translate3d(0, -2px, 0) scale(1.018);
 }
 
+.research-record {
+    width: clamp(290px, 30vw, 440px);
+}
+
 .research-record__cover {
     aspect-ratio: 16 / 10;
     height: auto;
@@ -1710,6 +1714,10 @@ body.research-detail-open {
 }
 
 @media (max-width: 575.98px) {
+    .research-record {
+        width: min(72vw, 310px);
+    }
+
     .research-record__cover {
         aspect-ratio: 16 / 10;
         height: auto;

@@ -33,7 +33,7 @@
         if (!document.querySelector('link[data-immersive-round3]')) {
             const stylesheet = document.createElement('link');
             stylesheet.rel = 'stylesheet';
-            stylesheet.href = new URL('css/immersive-round3.css?v=20260729-r12-final6', projectRoot).href;
+            stylesheet.href = new URL('css/immersive-round3.css?v=20260729-r12-final8', projectRoot).href;
             stylesheet.dataset.immersiveRound3 = 'styles';
             document.head.appendChild(stylesheet);
         }
