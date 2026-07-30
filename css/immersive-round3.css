@@ -1423,7 +1423,7 @@ body {
 }
 
 .research-record {
-    width: clamp(290px, 30vw, 440px);
+    width: clamp(340px, 38vw, 700px);
 }
 
 .research-record__cover {

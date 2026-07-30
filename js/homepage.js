@@ -41,7 +41,7 @@
         const compact = window.innerWidth < 900;
         const step = compact
             ? Math.min(window.innerWidth * 0.82, 330)
-            : Math.min(window.innerWidth * 0.36, 520);
+            : Math.min(window.innerWidth * 0.42, 760);
         const distance = Math.abs(offset);
         return {
             x: offset * step,
