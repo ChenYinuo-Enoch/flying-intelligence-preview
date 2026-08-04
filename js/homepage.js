@@ -279,7 +279,7 @@
         }, { passive: false });
 
         stage.addEventListener('pointerdown', function (event) {
-            if (detailLocked() || event.button !== 0) return;
+            if (detailLocked() || event.button !== 0 || event.target.closest('.research-airspace-controls')) return;
             dragStartX = event.clientX;
             dragMoved = false;
             dragCaptureTarget = event.target.closest('.research-record__cover') || stage;

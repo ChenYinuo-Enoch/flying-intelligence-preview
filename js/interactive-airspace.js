@@ -108,21 +108,6 @@
         window.addEventListener('scroll', requestUpdate, { passive: true });
     }
 
-    function addSectionIndexes() {
-        const labels = [
-            ['.publication-page .section-title', 'RESEARCH ARCHIVE']
-        ];
-
-        labels.forEach(function (entry) {
-            const container = document.querySelector(entry[0]);
-            if (!container || container.querySelector('.section-index')) return;
-            const label = document.createElement('span');
-            label.className = 'section-index';
-            label.textContent = entry[1];
-            container.prepend(label);
-        });
-    }
-
     function initializeReveal() {
         if (reducedMotion() || !('IntersectionObserver' in window)) return;
 
@@ -539,7 +524,6 @@
         document.documentElement.classList.add('airspace-js');
         addSharedShell();
         enhanceNavigation();
-        addSectionIndexes();
         initializeHero();
         initializeDirectionTrack();
         initializeCardTilt();
