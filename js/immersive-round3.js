@@ -42,15 +42,17 @@
                 <span class="airspace-menu-trigger__icon" aria-hidden="true"><i></i><i></i></span>
                 <span>Menu</span>
             </button>
-            <a class="airspace-brand" href="${pathFor('index.html')}" aria-label="Flying Intelligence Home">
-                <img src="${pathFor('files/images/FlyingIntelligence_LOGO.png')}" alt="">
-            </a>
-            <nav class="airspace-quick-links" aria-label="Quick navigation">
-                ${items.slice(1).map(function (item) {
-                    const current = item.key === activeKey ? ' aria-current="page"' : '';
-                    return `<a class="airspace-quick-link" href="${pathFor(item.path)}"${current}>${item.label}</a>`;
-                }).join('')}
-            </nav>`;
+            <div class="airspace-nav-cluster">
+                <a class="airspace-brand" href="${pathFor('index.html')}" aria-label="Flying Intelligence Home">
+                    <img src="${pathFor('files/images/FlyingIntelligence_LOGO.png')}" alt="">
+                </a>
+                <nav class="airspace-quick-links" aria-label="Quick navigation">
+                    ${items.slice(1).map(function (item) {
+                        const current = item.key === activeKey ? ' aria-current="page"' : '';
+                        return `<a class="airspace-quick-link" href="${pathFor(item.path)}"${current}>${item.label}</a>`;
+                    }).join('')}
+                </nav>
+            </div>`;
 
         const menu = document.createElement('div');
         menu.className = 'airspace-full-menu';
