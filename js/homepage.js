@@ -182,9 +182,9 @@
                     </article>`;
             }).join('')}
             <div class="research-airspace-controls" aria-label="Research project controls">
-                <button type="button" data-research-previous aria-label="Previous project">←</button>
+                <button type="button" data-research-previous aria-label="Previous research">←</button>
                 <span class="research-airspace-status" aria-live="polite"></span>
-                <button type="button" data-research-next aria-label="Next project">→</button>
+                <button type="button" data-research-next aria-label="Next research">→</button>
             </div>`;
 
         stage = container;
@@ -197,12 +197,20 @@
     }
 
     function bindStageInteractions() {
-        stage.querySelector('[data-research-previous]').addEventListener('click', function () {
-            setActive(activeIndex - 1, { focusActive: true });
-        });
-        stage.querySelector('[data-research-next]').addEventListener('click', function () {
-            setActive(activeIndex + 1, { focusActive: true });
-        });
+        const bindControl = function (button, delta) {
+            const move = function (event) {
+                event.stopPropagation();
+                setActive(activeIndex + delta);
+            };
+            button.addEventListener('click', move);
+            button.addEventListener('keydown', function (event) {
+                if (event.key !== 'Enter' && event.key !== ' ') return;
+                event.preventDefault();
+                move(event);
+            });
+        };
+        bindControl(stage.querySelector('[data-research-previous]'), -1);
+        bindControl(stage.querySelector('[data-research-next]'), 1);
 
         records.forEach(function (record, index) {
             const cover = record.querySelector('.research-record__cover');
@@ -349,6 +357,10 @@
             <button type="button" class="research-detail__close" aria-label="Back to Recent Research">
                 <span aria-hidden="true">←</span><span>Back</span>
             </button>
+            <div class="research-detail__navigation" aria-label="Research project controls">
+                <button type="button" data-research-detail-previous aria-label="Previous research">←</button>
+                <button type="button" data-research-detail-next aria-label="Next research">→</button>
+            </div>
             <div class="research-detail__stage">
                 <div class="research-detail__flipper">
                     <div class="research-detail__face research-detail__front" aria-hidden="true">
@@ -362,9 +374,27 @@
         document.body.appendChild(dialog);
 
         dialog.addEventListener('click', function (event) {
+            if (event.target.closest('[data-research-detail-previous]')) {
+                event.stopPropagation();
+                navigateFromDetail(-1);
+                return;
+            }
+            if (event.target.closest('[data-research-detail-next]')) {
+                event.stopPropagation();
+                navigateFromDetail(1);
+                return;
+            }
             if (event.target === dialog || event.target.closest('.research-detail__close')) closeDetail(true);
         });
         dialog.addEventListener('keydown', function (event) {
+            const previous = event.target.closest('[data-research-detail-previous]');
+            const next = event.target.closest('[data-research-detail-next]');
+            if ((previous || next) && (event.key === 'Enter' || event.key === ' ')) {
+                event.preventDefault();
+                event.stopPropagation();
+                navigateFromDetail(previous ? -1 : 1);
+                return;
+            }
             if (event.key === 'Escape') {
                 event.preventDefault();
                 closeDetail(true);
@@ -581,6 +611,21 @@
             window.history.replaceState(null, '', `${window.location.pathname}${window.location.search}`);
             startDetailClose(restoreFocus);
         }
+    }
+
+    function navigateFromDetail(delta) {
+        if (detailIndex < 0 || !records.length || detailState === DETAIL_STATES.CLOSING) return;
+        const nextIndex = (detailIndex + delta + records.length) % records.length;
+        restoreFocusAfterClose = false;
+        if (window.history.state && window.history.state.researchDetail === detailIndex) {
+            window.history.back();
+        } else {
+            window.history.replaceState(null, '', `${window.location.pathname}${window.location.search}`);
+            startDetailClose(false);
+        }
+        window.setTimeout(function () {
+            setActive(nextIndex, { focusActive: true, force: true });
+        }, motionQuery.matches ? 100 : 900);
     }
 
     function openFromLocation() {

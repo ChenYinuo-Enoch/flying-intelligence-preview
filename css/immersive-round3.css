@@ -708,6 +708,7 @@ body > .airspace-full-menu {
     left: 0;
     position: absolute;
     right: 0;
+    z-index: 50;
 }
 
 .research-airspace-controls button {
@@ -715,8 +716,15 @@ body > .airspace-full-menu {
     border: 1px solid var(--air-line);
     border-radius: 50%;
     color: var(--air-ink);
+    cursor: pointer;
     height: 48px;
     width: 48px;
+}
+
+.research-airspace-controls button:focus-visible,
+.research-detail__navigation button:focus-visible {
+    outline: 3px solid var(--air-orange);
+    outline-offset: 3px;
 }
 
 .research-airspace-status {
@@ -1018,6 +1026,58 @@ body > .research-detail {
     top: 20px;
     width: auto;
     z-index: 5;
+}
+
+.research-detail__navigation {
+    display: flex;
+    gap: 10px;
+    left: 22px;
+    position: fixed;
+    top: 20px;
+    z-index: 5;
+}
+
+.research-detail__navigation button {
+    align-items: center;
+    background: rgba(255, 255, 252, 0.94);
+    border: 1px solid var(--air-line);
+    border-radius: 50%;
+    color: var(--air-ink);
+    cursor: pointer;
+    display: inline-flex;
+    height: 48px;
+    justify-content: center;
+    width: 48px;
+}
+
+body.airspace-cursor-enabled .research-airspace-stage,
+body.airspace-cursor-enabled .research-airspace-stage *,
+body.airspace-cursor-enabled .research-detail,
+body.airspace-cursor-enabled .research-detail * {
+    cursor: default !important;
+}
+
+body.airspace-cursor-enabled .research-record__cover,
+body.airspace-cursor-enabled .research-airspace-controls button,
+body.airspace-cursor-enabled .research-detail button,
+body.airspace-cursor-enabled .research-detail a {
+    cursor: pointer !important;
+}
+
+body.airspace-cursor-enabled .research-record__summary h3,
+body.airspace-cursor-enabled .research-record__summary p,
+body.airspace-cursor-enabled .research-detail__copy,
+body.airspace-cursor-enabled .research-detail__copy *:not(a):not(button) {
+    cursor: text !important;
+}
+
+body.research-system-cursor .airspace-cursor,
+body.research-system-cursor .airspace-cursor-label,
+body.research-detail-open .airspace-cursor,
+body.research-detail-open .airspace-cursor-label,
+body.airspace-cursor-enabled:has(.research-airspace-stage:hover) .airspace-cursor,
+body.airspace-cursor-enabled:has(.research-airspace-stage:hover) .airspace-cursor-label {
+    display: none !important;
 }
 
 .research-detail__close span:last-child {

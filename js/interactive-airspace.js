@@ -110,10 +110,7 @@
 
     function addSectionIndexes() {
         const labels = [
-            ['.research-direction-section .section-title', '01 / AIRSPACE RESEARCH'],
-            ['.recent-achievements-section .section-title', '02 / RESEARCH LOG'],
-            ['.publication-page .section-title', 'RESEARCH ARCHIVE'],
-            ['.group-page .group-page-title', 'RESEARCH COMMUNITY']
+            ['.publication-page .section-title', 'RESEARCH ARCHIVE']
         ];
 
         labels.forEach(function (entry) {
@@ -457,6 +454,8 @@
             if (!frame) frame = window.requestAnimationFrame(render);
         }, { passive: true });
         document.addEventListener('pointerover', function (event) {
+            const researchSystemCursor = event.target.closest('.research-airspace-stage, .research-detail');
+            document.body.classList.toggle('research-system-cursor', Boolean(researchSystemCursor));
             const labelled = event.target.closest('[data-cursor]');
             const interactive = event.target.closest('a, button');
             const image = event.target.closest('img, video');
@@ -467,6 +466,7 @@
             label.classList.toggle('is-visible', Boolean(mode) && !text);
         });
         document.addEventListener('pointerleave', function () {
+            document.body.classList.remove('research-system-cursor');
             dot.classList.remove('is-visible', 'is-active');
             label.classList.remove('is-visible');
         });
