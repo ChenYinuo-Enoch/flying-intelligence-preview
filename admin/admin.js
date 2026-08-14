@@ -1,29 +1,21 @@
 (function () {
     'use strict';
 
-    const API_ROOT = 'https://api.github.com';
+    const FIREBASE_SDK_VERSION = '12.16.0';
     const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
-    const IMAGE_TYPES = new Map([
-        ['image/jpeg', '.jpg'],
-        ['image/png', '.png'],
-        ['image/webp', '.webp']
-    ]);
-    const configuredRepository = document.body.dataset.repository;
-    const configuredParent = document.body.dataset.parentRepository;
-    const localHost = location.hostname === 'localhost' || location.hostname === '127.0.0.1' || location.hostname === '::1';
-    const dryRun = localHost && new URLSearchParams(location.search).get('dry-run') === '1';
+    const IMAGE_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp']);
+    const settings = window.FLYING_INTELLIGENCE_FIREBASE || {};
+    const localHost = ['localhost', '127.0.0.1', '::1'].includes(window.location.hostname);
 
     const elements = {
-        token: document.getElementById('github-token'),
-        connect: document.getElementById('connect-button'),
-        disconnect: document.getElementById('disconnect-button'),
+        signInForm: document.getElementById('sign-in-form'),
+        account: document.getElementById('account'),
+        password: document.getElementById('password'),
+        signIn: document.getElementById('sign-in-button'),
+        signOut: document.getElementById('sign-out-button'),
+        signedInRow: document.getElementById('signed-in-row'),
         badge: document.getElementById('connection-badge'),
         authStatus: document.getElementById('auth-status'),
-        repositoryStatus: document.getElementById('repository-status'),
-        authenticatedUser: document.getElementById('authenticated-user'),
-        repositoryName: document.getElementById('repository-name'),
-        baseBranch: document.getElementById('base-branch'),
-        baseCommit: document.getElementById('base-commit'),
         workspace: document.getElementById('admin-workspace'),
         publicationTab: document.getElementById('publication-tab'),
         memberTab: document.getElementById('member-tab'),
@@ -55,34 +47,23 @@
         memberYearField: document.getElementById('member-year-field'),
         directionOptions: document.getElementById('research-direction-options'),
         reviewPanel: document.getElementById('review-panel'),
-        reviewRepository: document.getElementById('review-repository'),
-        reviewBase: document.getElementById('review-base'),
-        reviewBranch: document.getElementById('review-branch'),
-        reviewFiles: document.getElementById('review-files'),
+        reviewType: document.getElementById('review-type'),
+        reviewName: document.getElementById('review-name'),
         publish: document.getElementById('publish-button'),
         submitStatus: document.getElementById('submit-status'),
-        successPanel: document.getElementById('success-panel'),
-        successBranch: document.getElementById('success-branch'),
-        successCommit: document.getElementById('success-commit'),
-        successPr: document.getElementById('success-pr'),
-        successPrLink: document.getElementById('success-pr-link')
+        successPanel: document.getElementById('success-panel')
     };
 
     const state = {
-        token: '',
-        connected: false,
-        user: null,
-        repository: null,
-        baseBranch: '',
-        baseSha: '',
-        papersSource: '',
-        membersSource: '',
+        auth: null,
+        callable: null,
+        authorized: false,
+        submitting: false,
+        review: null,
         publicationRecords: [],
         memberRecords: [],
-        repositoryPaths: new Set(),
-        review: null,
-        submitting: false,
-        previewUrls: { publication: '', member: '' }
+        previewUrls: { publication: '', member: '' },
+        authApi: null
     };
 
     function setStatus(element, message, status) {
@@ -94,11 +75,6 @@
     function setConnectionState(label, status) {
         elements.badge.textContent = label;
         elements.badge.dataset.state = status;
-    }
-
-    function clearPreviewUrl(kind) {
-        if (state.previewUrls[kind]) URL.revokeObjectURL(state.previewUrls[kind]);
-        state.previewUrls[kind] = '';
     }
 
     function showErrors(container, errors) {
@@ -117,52 +93,166 @@
         container.hidden = false;
     }
 
-    function apiErrorMessage(error) {
-        if (error && error.message) return error.message;
-        return 'GitHub request failed.';
+    function clearPreviewUrl(kind) {
+        if (state.previewUrls[kind]) URL.revokeObjectURL(state.previewUrls[kind]);
+        state.previewUrls[kind] = '';
     }
 
-    async function githubRequest(path, options) {
-        if (!state.token) throw new Error('Connect to GitHub before continuing.');
-        const request = options || {};
-        const response = await fetch(API_ROOT + path, {
-            method: request.method || 'GET',
-            headers: {
-                Accept: 'application/vnd.github+json',
-                Authorization: `Bearer ${state.token}`,
-                'X-GitHub-Api-Version': '2022-11-28',
-                ...(request.body ? { 'Content-Type': 'application/json' } : {})
-            },
-            body: request.body ? JSON.stringify(request.body) : undefined
-        });
-        const text = await response.text();
-        let payload = null;
-        if (text) {
-            try { payload = JSON.parse(text); }
-            catch (error) { payload = { message: 'GitHub returned an unreadable response.' }; }
+    function resetProtectedState() {
+        state.authorized = false;
+        state.review = null;
+        state.publicationRecords = [];
+        state.memberRecords = [];
+        elements.workspace.hidden = true;
+        elements.reviewPanel.hidden = true;
+        elements.successPanel.hidden = true;
+    }
+
+    function renderSignedOut(message) {
+        resetProtectedState();
+        elements.signInForm.hidden = false;
+        elements.signedInRow.hidden = true;
+        elements.password.value = '';
+        elements.signIn.disabled = !state.auth;
+        setConnectionState('Signed out', 'idle');
+        setStatus(elements.authStatus, message || 'Sign in with an authorized administrator account.', message ? 'error' : '');
+    }
+
+    function renderAuthorized() {
+        state.authorized = true;
+        elements.signInForm.hidden = true;
+        elements.signedInRow.hidden = false;
+        elements.signIn.disabled = false;
+        setConnectionState('Authorized', 'connected');
+        setStatus(elements.authStatus, 'Administrator access confirmed.', 'success');
+    }
+
+    function isFirebaseConfigReady(config) {
+        return Boolean(config && config.apiKey && config.authDomain && config.projectId && config.appId);
+    }
+
+    async function loadFirebaseModules() {
+        const base = `https://www.gstatic.com/firebasejs/${FIREBASE_SDK_VERSION}`;
+        return Promise.all([
+            import(`${base}/firebase-app.js`),
+            import(`${base}/firebase-auth.js`),
+            import(`${base}/firebase-functions.js`)
+        ]);
+    }
+
+    async function loadContentSnapshot() {
+        const responses = await Promise.all([
+            fetch('../papers-data.js', { cache: 'no-store' }),
+            fetch('../data/members.js', { cache: 'no-store' })
+        ]);
+        if (!responses[0].ok || !responses[1].ok) throw new Error('snapshot-unavailable');
+        const papersSource = await responses[0].text();
+        const membersSource = await responses[1].text();
+        state.publicationRecords = parsePublicationRecords(papersSource);
+        state.memberRecords = parseMemberRecords(membersSource);
+        populateDirections(papersSource);
+    }
+
+    async function handleAuthState(user) {
+        if (!user) {
+            renderSignedOut();
+            return;
         }
-        if (!response.ok) {
-            const failure = new Error(payload && payload.message ? payload.message : `GitHub request failed (${response.status}).`);
-            failure.status = response.status;
-            throw failure;
+
+        resetProtectedState();
+        elements.signInForm.hidden = true;
+        setConnectionState('Checking access', 'loading');
+        setStatus(elements.authStatus, 'Checking administrator access.', '');
+        try {
+            const result = await state.callable.checkAdmin({});
+            if (!result || !result.data || result.data.authorized !== true) throw new Error('not-authorized');
+            await loadContentSnapshot();
+            renderAuthorized();
+            elements.workspace.hidden = false;
+        } catch (error) {
+            try { await state.authApi.signOut(state.auth); }
+            catch (signOutError) { /* The UI remains locked even if remote sign-out fails. */ }
+            renderSignedOut('Unable to sign in with this account.');
         }
-        return payload;
     }
 
-    function decodeBase64Utf8(value) {
-        const binary = atob(String(value || '').replace(/\s/g, ''));
-        const bytes = Uint8Array.from(binary, function (character) { return character.charCodeAt(0); });
-        return new TextDecoder().decode(bytes);
+    async function initializeAuthentication() {
+        if (!isFirebaseConfigReady(settings.config)) {
+            elements.signIn.disabled = true;
+            setConnectionState('Setup required', 'idle');
+            setStatus(elements.authStatus, 'Administrator sign-in is not configured yet.', 'error');
+            return;
+        }
+
+        try {
+            const modules = await loadFirebaseModules();
+            const appApi = modules[0];
+            const authApi = modules[1];
+            const functionsApi = modules[2];
+            const app = appApi.initializeApp(settings.config);
+            const auth = authApi.getAuth(app);
+            const functions = functionsApi.getFunctions(app, settings.functionsRegion || 'us-central1');
+
+            if (localHost && settings.emulators) {
+                if (settings.emulators.authPort) {
+                    authApi.connectAuthEmulator(auth, `http://127.0.0.1:${settings.emulators.authPort}`, { disableWarnings: true });
+                }
+                if (settings.emulators.functionsPort) {
+                    functionsApi.connectFunctionsEmulator(functions, '127.0.0.1', settings.emulators.functionsPort);
+                }
+            }
+            await authApi.setPersistence(auth, authApi.browserSessionPersistence);
+
+            state.auth = auth;
+            state.authApi = authApi;
+            state.callable = {
+                checkAdmin: functionsApi.httpsCallable(functions, 'getAdminStatus'),
+                submitUpdate: functionsApi.httpsCallable(functions, 'submitUpdate')
+            };
+            elements.signIn.disabled = false;
+            authApi.onAuthStateChanged(auth, function (user) {
+                handleAuthState(user).catch(function () {
+                    renderSignedOut('Unable to sign in with this account.');
+                });
+            });
+        } catch (error) {
+            elements.signIn.disabled = true;
+            setConnectionState('Unavailable', 'error');
+            setStatus(elements.authStatus, 'Secure sign-in is temporarily unavailable.', 'error');
+        }
     }
 
-    async function readRepositoryFile(path, branch) {
-        const payload = await githubRequest(`/repos/${configuredRepository}/contents/${encodePath(path)}?ref=${encodeURIComponent(branch)}`);
-        if (!payload || payload.type !== 'file' || !payload.content) throw new Error(`Required file is unavailable: ${path}`);
-        return decodeBase64Utf8(payload.content);
+    async function signIn(event) {
+        event.preventDefault();
+        if (!state.auth || !state.authApi) return;
+        const account = elements.account.value.trim();
+        const password = elements.password.value;
+        if (!account || !password) {
+            setStatus(elements.authStatus, 'Enter your account and password.', 'error');
+            return;
+        }
+
+        elements.signIn.disabled = true;
+        setConnectionState('Signing in', 'loading');
+        setStatus(elements.authStatus, 'Signing in securely.', '');
+        try {
+            await state.authApi.signInWithEmailAndPassword(state.auth, account, password);
+        } catch (error) {
+            renderSignedOut('Unable to sign in with this account.');
+        } finally {
+            elements.password.value = '';
+            if (!state.authorized) elements.signIn.disabled = false;
+        }
     }
 
-    function encodePath(path) {
-        return path.split('/').map(encodeURIComponent).join('/');
+    async function signOut() {
+        resetProtectedState();
+        try {
+            await state.authApi.signOut(state.auth);
+            renderSignedOut();
+        } catch (error) {
+            renderSignedOut('Unable to complete sign out. Please refresh this page.');
+        }
     }
 
     function parseQuotedValue(block, key) {
@@ -219,151 +309,6 @@
         });
     }
 
-    async function loadDryRunSnapshot() {
-        const [papersResponse, membersResponse] = await Promise.all([
-            fetch('../papers-data.js', { cache: 'no-store' }),
-            fetch('../data/members.js', { cache: 'no-store' })
-        ]);
-        if (!papersResponse.ok || !membersResponse.ok) throw new Error('Local dry-run data files could not be loaded.');
-        return {
-            sha: 'dry-run-base-sha',
-            papers: await papersResponse.text(),
-            members: await membersResponse.text(),
-            paths: new Set(['papers-data.js', 'data/members.js'])
-        };
-    }
-
-    async function loadBaseSnapshot(branch) {
-        state.review = null;
-        elements.reviewPanel.hidden = true;
-        elements.successPanel.hidden = true;
-        setStatus(elements.authStatus, 'Loading branch content…', 'loading');
-        let snapshot;
-        if (dryRun) {
-            snapshot = await loadDryRunSnapshot();
-        } else {
-            const branchInfo = await githubRequest(`/repos/${configuredRepository}/branches/${encodeURIComponent(branch)}`);
-            const baseSha = branchInfo.commit.sha;
-            const [papers, membersSource, tree] = await Promise.all([
-                readRepositoryFile('papers-data.js', branch),
-                readRepositoryFile('data/members.js', branch),
-                githubRequest(`/repos/${configuredRepository}/git/trees/${baseSha}?recursive=1`)
-            ]);
-            snapshot = {
-                sha: baseSha,
-                papers: papers,
-                members: membersSource,
-                paths: new Set((tree.tree || []).map(function (entry) { return entry.path; }))
-            };
-        }
-        state.baseBranch = branch;
-        state.baseSha = snapshot.sha;
-        state.papersSource = snapshot.papers;
-        state.membersSource = snapshot.members;
-        state.publicationRecords = parsePublicationRecords(snapshot.papers);
-        state.memberRecords = parseMemberRecords(snapshot.members);
-        state.repositoryPaths = snapshot.paths;
-        elements.baseCommit.textContent = snapshot.sha;
-        populateDirections(snapshot.papers);
-        setStatus(elements.authStatus, `Ready: ${state.publicationRecords.length} publications and ${state.memberRecords.length} members loaded from ${branch}.`, 'success');
-    }
-
-    async function connect() {
-        if (state.submitting) return;
-        const token = elements.token.value.trim();
-        if (!dryRun && !token) {
-            setStatus(elements.authStatus, 'Enter a GitHub fine-grained token.', 'error');
-            elements.token.focus();
-            return;
-        }
-        elements.connect.disabled = true;
-        setConnectionState('Validating', 'loading');
-        setStatus(elements.authStatus, 'Validating GitHub identity and repository write permission…', 'loading');
-        state.token = token;
-        try {
-            let user;
-            let repository;
-            let branches;
-            if (dryRun) {
-                user = { login: 'local-dry-run' };
-                repository = {
-                    full_name: configuredRepository,
-                    default_branch: 'fix/publication-title-and-direction-arrows',
-                    fork: true,
-                    parent: { full_name: configuredParent },
-                    permissions: { push: true }
-                };
-                branches = [{ name: repository.default_branch }];
-            } else {
-                [user, repository, branches] = await Promise.all([
-                    githubRequest('/user'),
-                    githubRequest(`/repos/${configuredRepository}`),
-                    githubRequest(`/repos/${configuredRepository}/branches?per_page=100`)
-                ]);
-                const expectedRepository = repository.full_name.toLowerCase() === configuredRepository.toLowerCase();
-                const expectedParent = repository.fork && repository.parent && repository.parent.full_name.toLowerCase() === configuredParent.toLowerCase();
-                if (!expectedRepository || !expectedParent) throw new Error('The configured repository is not the expected Flying Intelligence fork.');
-                if (!repository.permissions || repository.permissions.push !== true) throw new Error('This token does not have write permission for the configured fork.');
-            }
-
-            state.connected = true;
-            state.user = user;
-            state.repository = repository;
-            elements.token.value = '';
-            elements.authenticatedUser.textContent = user.login;
-            elements.repositoryName.textContent = repository.full_name;
-            elements.baseBranch.replaceChildren();
-            branches.forEach(function (branch) {
-                const option = document.createElement('option');
-                option.value = branch.name;
-                option.textContent = branch.name;
-                option.selected = branch.name === repository.default_branch;
-                elements.baseBranch.appendChild(option);
-            });
-            elements.repositoryStatus.hidden = false;
-            elements.workspace.hidden = false;
-            elements.connect.hidden = true;
-            elements.disconnect.hidden = false;
-            setConnectionState(dryRun ? 'Dry-run connected' : 'Connected', 'connected');
-            await loadBaseSnapshot(elements.baseBranch.value);
-        } catch (error) {
-            state.token = '';
-            state.connected = false;
-            state.user = null;
-            state.repository = null;
-            elements.token.value = '';
-            elements.workspace.hidden = true;
-            elements.repositoryStatus.hidden = true;
-            elements.connect.hidden = false;
-            elements.disconnect.hidden = true;
-            setConnectionState('Error', 'error');
-            setStatus(elements.authStatus, apiErrorMessage(error), 'error');
-        } finally {
-            elements.connect.disabled = false;
-        }
-    }
-
-    function disconnect() {
-        state.token = '';
-        state.connected = false;
-        state.user = null;
-        state.repository = null;
-        state.review = null;
-        state.baseSha = '';
-        state.papersSource = '';
-        state.membersSource = '';
-        state.repositoryPaths = new Set();
-        elements.token.value = '';
-        elements.workspace.hidden = true;
-        elements.repositoryStatus.hidden = true;
-        elements.reviewPanel.hidden = true;
-        elements.successPanel.hidden = true;
-        elements.connect.hidden = false;
-        elements.disconnect.hidden = true;
-        setConnectionState('Not connected', 'idle');
-        setStatus(elements.authStatus, 'Disconnected. The in-memory token has been cleared.', 'success');
-    }
-
     function safeHttpUrl(value) {
         try {
             const url = new URL(value);
@@ -380,8 +325,8 @@
     }
 
     function sanitizeAuthorMarkup(value) {
-        const documentFragment = new DOMParser().parseFromString(`<div>${value}</div>`, 'text/html');
-        const source = documentFragment.body.firstElementChild;
+        const parsed = new DOMParser().parseFromString(`<div>${value}</div>`, 'text/html');
+        const source = parsed.body.firstElementChild;
         const output = document.createElement('div');
         Array.from(source.childNodes).forEach(function (node) {
             if (node.nodeType === Node.TEXT_NODE) {
@@ -392,7 +337,7 @@
                 const href = node.getAttribute('href') || '';
                 if (safeLinkOrPath(href)) {
                     const link = document.createElement('a');
-                    link.setAttribute('href', href);
+                    link.href = href;
                     link.textContent = node.textContent;
                     output.appendChild(link);
                     return;
@@ -406,9 +351,7 @@
     function validateImage(file) {
         const errors = [];
         if (!file) return ['Select an image file.'];
-        const name = file.name.toLowerCase();
-        const allowedExtension = /\.(?:jpe?g|png|webp)$/.test(name);
-        if (!IMAGE_TYPES.has(file.type) || !allowedExtension) errors.push('Image must be a JPG, PNG, or WebP file.');
+        if (!IMAGE_TYPES.has(file.type) || !/\.(?:jpe?g|png|webp)$/i.test(file.name)) errors.push('Image must be a JPG, PNG, or WebP file.');
         if (file.size > MAX_IMAGE_BYTES) errors.push('Image must be 5 MB or smaller.');
         if (file.size <= 0) errors.push('Image file is empty.');
         return errors;
@@ -418,21 +361,6 @@
         const normalized = value.normalize('NFKD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
         const slug = normalized.replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 64);
         return slug || fallback;
-    }
-
-    function fileExtension(file) {
-        if (file.type === 'image/jpeg') return /\.jpeg$/i.test(file.name) ? '.jpeg' : '.jpg';
-        return IMAGE_TYPES.get(file.type) || '';
-    }
-
-    function uniqueRepositoryPath(directory, stem, extension) {
-        let candidate = `${directory}/${stem}${extension}`;
-        let suffix = 2;
-        while (state.repositoryPaths.has(candidate)) {
-            candidate = `${directory}/${stem}-${suffix}${extension}`;
-            suffix += 1;
-        }
-        return candidate;
     }
 
     function splitTags(value) {
@@ -460,7 +388,7 @@
         if (!draft.venue) errors.push('Venue is required.');
         if (!safeHttpUrl(draft.url)) errors.push('Paper or project URL must be a valid HTTP or HTTPS URL.');
         if (!draft.tags.length) errors.push('At least one research direction is required.');
-        if (draft.video && !safeLinkOrPath(draft.video)) errors.push('Video must be a valid HTTP(S) URL or repository-relative path.');
+        if (draft.video && !safeLinkOrPath(draft.video)) errors.push('Video must be a valid HTTP(S) URL or site-relative path.');
         errors.push.apply(errors, validateImage(image));
         const year = (draft.date.match(/\b(?:19|20)\d{2}\b/) || [''])[0];
         const duplicate = state.publicationRecords.find(function (record) {
@@ -498,7 +426,7 @@
         if (!draft.institution) errors.push('Institution is required.');
         if (!draft.research) errors.push('Research description is required.');
         if (!draft.email) errors.push('Email display text is required.');
-        if (!safeLinkOrPath(profileUrl)) errors.push('Personal page must be a valid HTTP(S) URL or repository-relative path.');
+        if (!safeLinkOrPath(profileUrl)) errors.push('Personal page must be a valid HTTP(S) URL or site-relative path.');
         if (scholarUrl && !safeHttpUrl(scholarUrl)) errors.push('Scholar link must be a valid HTTP or HTTPS URL.');
         errors.push.apply(errors, validateImage(image));
         const duplicate = state.memberRecords.find(function (member) {
@@ -554,46 +482,10 @@
         elements.memberPreview.hidden = false;
     }
 
-    function timestamp() {
-        const now = new Date();
-        const pad = function (value) { return String(value).padStart(2, '0'); };
-        return `${now.getUTCFullYear()}${pad(now.getUTCMonth() + 1)}${pad(now.getUTCDate())}-${pad(now.getUTCHours())}${pad(now.getUTCMinutes())}${pad(now.getUTCSeconds())}`;
-    }
-
-    function contentBranch(kind) {
-        const random = Math.random().toString(36).slice(2, 6);
-        return `content/${kind}-${timestamp()}-${random}`;
-    }
-
     function prepareReview(kind, draft) {
-        const isPublication = kind === 'publication';
-        const extension = fileExtension(draft.imageFile);
-        const stem = slugify(isPublication ? draft.title : draft.name, isPublication ? 'publication' : 'member');
-        const imageRepositoryPath = uniqueRepositoryPath(isPublication ? 'files/images' : 'groups', stem, extension);
-        draft.imageRepositoryPath = imageRepositoryPath;
-        if (isPublication) draft.img = imageRepositoryPath;
-        else draft.image = `../${imageRepositoryPath}`;
-
-        state.review = {
-            kind: kind,
-            draft: draft,
-            baseBranch: state.baseBranch,
-            baseSha: state.baseSha,
-            branch: contentBranch(kind),
-            files: [
-                { path: isPublication ? 'papers-data.js' : 'data/members.js', action: 'modify' },
-                { path: imageRepositoryPath, action: 'add' }
-            ]
-        };
-        elements.reviewRepository.textContent = configuredRepository;
-        elements.reviewBase.textContent = `${state.baseBranch} @ ${state.baseSha.slice(0, 12)}`;
-        elements.reviewBranch.textContent = state.review.branch;
-        elements.reviewFiles.replaceChildren();
-        state.review.files.forEach(function (file) {
-            const item = document.createElement('li');
-            item.textContent = `${file.action.toUpperCase()}  ${file.path}`;
-            elements.reviewFiles.appendChild(item);
-        });
+        state.review = { kind: kind, draft: draft };
+        elements.reviewType.textContent = kind === 'publication' ? 'Publication' : 'Member';
+        elements.reviewName.textContent = kind === 'publication' ? draft.title : draft.name;
         elements.reviewPanel.hidden = false;
         elements.successPanel.hidden = true;
         elements.publish.disabled = false;
@@ -608,184 +500,46 @@
         elements.successPanel.hidden = true;
     }
 
-    function publicationEntry(draft) {
-        const lines = [
-            '    {',
-            `        title: ${JSON.stringify(draft.title)},`,
-            `        url: ${JSON.stringify(draft.url)},`,
-            `        venue: ${JSON.stringify(draft.venue)},`,
-            `        img: ${JSON.stringify(draft.img)},`,
-            `        date: ${JSON.stringify(draft.date)},`,
-            `        authors: ${JSON.stringify(draft.authors)},`,
-            `        tags: ${JSON.stringify(draft.tags)},`
-        ];
-        if (draft.video) lines.push(`        video: ${JSON.stringify(draft.video)},`);
-        lines.push(`        coverPosition: ${JSON.stringify(draft.coverPosition)},`);
-        lines.push(`        mediaFitMode: ${JSON.stringify(draft.mediaFitMode)}`);
-        lines.push('    },');
-        return lines.join('\n');
-    }
-
-    function memberEntry(draft) {
-        const links = draft.scholarUrl ? [{ label: 'Google Scholar', url: draft.scholarUrl }] : [];
-        const lines = [
-            '    {',
-            `        id: ${JSON.stringify(draft.id)},`,
-            `        type: ${JSON.stringify(draft.type)},`
-        ];
-        if (draft.type === 'member') lines.push(`        year: ${draft.year},`);
-        lines.push(`        name: ${JSON.stringify(draft.name)},`);
-        lines.push(`        image: ${JSON.stringify(draft.image)},`);
-        lines.push(`        alt: ${JSON.stringify(draft.name)},`);
-        lines.push(`        profileUrl: ${JSON.stringify(draft.profileUrl)},`);
-        lines.push(`        time: ${JSON.stringify(draft.time)},`);
-        lines.push(`        institution: ${JSON.stringify(draft.institution)},`);
-        lines.push(`        research: ${JSON.stringify(draft.research)},`);
-        lines.push(`        email: ${JSON.stringify(draft.email)},`);
-        lines.push(`        links: ${JSON.stringify(links, null, 4).replace(/\n/g, '\n        ')}`);
-        lines.push('    },');
-        return lines.join('\n');
-    }
-
-    function appendArrayEntry(source, entry, variableName) {
-        if (!new RegExp(`const\\s+${variableName}\\s*=\\s*\\[`).test(source)) throw new Error(`The ${variableName} data source has an unexpected format.`);
-        const closing = source.lastIndexOf('\n];');
-        if (closing < 0) throw new Error(`The ${variableName} data source is missing its closing array marker.`);
-        return `${source.slice(0, closing)}\n${entry}${source.slice(closing)}`;
-    }
-
     function fileAsBase64(file) {
         return new Promise(function (resolve, reject) {
             const reader = new FileReader();
             reader.onload = function () { resolve(String(reader.result).split(',')[1]); };
-            reader.onerror = function () { reject(new Error('The selected image could not be read.')); };
+            reader.onerror = function () { reject(new Error('image-read-failed')); };
             reader.readAsDataURL(file);
         });
     }
 
-    function shortSubject(value) {
-        return value.length > 62 ? `${value.slice(0, 59)}…` : value;
-    }
-
-    async function latestBaseSha() {
-        if (dryRun) return state.baseSha;
-        const branch = await githubRequest(`/repos/${configuredRepository}/branches/${encodeURIComponent(state.review.baseBranch)}`);
-        return branch.commit.sha;
-    }
-
     async function submitReview() {
-        if (!state.connected || !state.review || state.submitting) return;
+        if (!state.authorized || !state.review || state.submitting) return;
         state.submitting = true;
         elements.publish.disabled = true;
-        setStatus(elements.submitStatus, 'Rechecking the base branch before creating the content commit…', 'loading');
-        let branchCreated = false;
-        let submissionClosed = false;
+        setStatus(elements.submitStatus, 'Submitting the validated update for review.', '');
         try {
-            const currentBaseSha = await latestBaseSha();
-            if (currentBaseSha !== state.review.baseSha) {
-                throw new Error('The base branch changed after preview. Reload the branch data and review the change again.');
-            }
-
-            const review = state.review;
-            const isPublication = review.kind === 'publication';
-            const updatedSource = isPublication
-                ? appendArrayEntry(state.papersSource, publicationEntry(review.draft), 'papers')
-                : appendArrayEntry(state.membersSource, memberEntry(review.draft), 'members');
-            const dataPath = isPublication ? 'papers-data.js' : 'data/members.js';
-            const imageContent = await fileAsBase64(review.draft.imageFile);
-
-            if (dryRun) {
-                const generated = {
-                    base: review.baseBranch,
-                    head: review.branch,
-                    files: review.files.map(function (file) { return file.path; }),
-                    dataBytes: new TextEncoder().encode(updatedSource).length,
-                    imageBytes: review.draft.imageFile.size
-                };
-                showSuccess(review.branch, `dry-run-${generated.dataBytes}-${generated.imageBytes}`, null);
-                setStatus(elements.submitStatus, 'Dry run complete. No GitHub mutation request was sent.', 'success');
-                submissionClosed = true;
-                return;
-            }
-
-            setStatus(elements.submitStatus, 'Creating content blobs and an atomic commit…', 'loading');
-            const baseCommit = await githubRequest(`/repos/${configuredRepository}/git/commits/${review.baseSha}`);
-            const [dataBlob, imageBlob] = await Promise.all([
-                githubRequest(`/repos/${configuredRepository}/git/blobs`, {
-                    method: 'POST',
-                    body: { content: updatedSource, encoding: 'utf-8' }
-                }),
-                githubRequest(`/repos/${configuredRepository}/git/blobs`, {
-                    method: 'POST',
-                    body: { content: imageContent, encoding: 'base64' }
-                })
-            ]);
-            const tree = await githubRequest(`/repos/${configuredRepository}/git/trees`, {
-                method: 'POST',
-                body: {
-                    base_tree: baseCommit.tree.sha,
-                    tree: [
-                        { path: dataPath, mode: '100644', type: 'blob', sha: dataBlob.sha },
-                        { path: review.draft.imageRepositoryPath, mode: '100644', type: 'blob', sha: imageBlob.sha }
-                    ]
+            const cleanDraft = Object.assign({}, state.review.draft);
+            const imageFile = cleanDraft.imageFile;
+            delete cleanDraft.imageFile;
+            const response = await state.callable.submitUpdate({
+                kind: state.review.kind,
+                draft: cleanDraft,
+                image: {
+                    name: imageFile.name,
+                    type: imageFile.type,
+                    size: imageFile.size,
+                    base64: await fileAsBase64(imageFile)
                 }
             });
-            const subject = isPublication ? shortSubject(review.draft.title) : review.draft.name;
-            const commitMessage = isPublication ? `content: add publication "${subject}"` : `content: add member "${subject}"`;
-            const commit = await githubRequest(`/repos/${configuredRepository}/git/commits`, {
-                method: 'POST',
-                body: { message: commitMessage, tree: tree.sha, parents: [review.baseSha] }
-            });
-            await githubRequest(`/repos/${configuredRepository}/git/refs`, {
-                method: 'POST',
-                body: { ref: `refs/heads/${review.branch}`, sha: commit.sha }
-            });
-            branchCreated = true;
-            setStatus(elements.submitStatus, 'Content branch created. Opening Pull Request…', 'loading');
-            const title = isPublication ? `content: add publication ${review.draft.title}` : `content: add member ${review.draft.name}`;
-            const pullRequest = await githubRequest(`/repos/${configuredRepository}/pulls`, {
-                method: 'POST',
-                body: {
-                    title: title,
-                    head: review.branch,
-                    base: review.baseBranch,
-                    body: [
-                        `Type: ${isPublication ? 'Publication' : 'Member'}`,
-                        `Name: ${isPublication ? review.draft.title : review.draft.name}`,
-                        `Base branch: ${review.baseBranch}`,
-                        'Changed files:',
-                        ...review.files.map(function (file) { return `- ${file.path}`; }),
-                        '',
-                        'Generated by Flying Intelligence Admin.'
-                    ].join('\n')
-                }
-            });
-            showSuccess(review.branch, commit.sha, pullRequest);
-            setStatus(elements.submitStatus, 'Pull Request created. Review and merge it on GitHub when ready.', 'success');
-            submissionClosed = true;
+            if (!response || !response.data || response.data.success !== true) throw new Error('submission-failed');
+            state.review = null;
+            elements.reviewPanel.hidden = true;
+            elements.successPanel.hidden = false;
+            setStatus(elements.submitStatus, '', '');
+            elements.successPanel.scrollIntoView({ behavior: 'smooth', block: 'start' });
         } catch (error) {
-            const prefix = branchCreated ? `The content branch ${state.review.branch} was created, but Pull Request creation failed. ` : '';
-            setStatus(elements.submitStatus, prefix + apiErrorMessage(error), 'error');
-            submissionClosed = branchCreated;
+            setStatus(elements.submitStatus, 'Unable to submit this update. Please try again.', 'error');
+            elements.publish.disabled = false;
         } finally {
             state.submitting = false;
-            elements.publish.disabled = submissionClosed;
         }
-    }
-
-    function showSuccess(branch, commit, pullRequest) {
-        elements.successBranch.textContent = branch;
-        elements.successCommit.textContent = commit;
-        if (pullRequest) {
-            elements.successPr.textContent = `#${pullRequest.number}`;
-            elements.successPrLink.href = pullRequest.html_url;
-            elements.successPrLink.hidden = false;
-        } else {
-            elements.successPr.textContent = 'DRY RUN — no Pull Request created';
-            elements.successPrLink.hidden = true;
-        }
-        elements.successPanel.hidden = false;
-        elements.successPanel.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
 
     function activateTab(kind) {
@@ -795,7 +549,6 @@
         elements.memberTab.setAttribute('aria-selected', String(!publication));
         elements.publicationPanel.hidden = !publication;
         elements.memberPanel.hidden = publication;
-        (publication ? elements.publicationPanel : elements.memberPanel).focus({ preventScroll: true });
     }
 
     function updateMemberType() {
@@ -807,12 +560,8 @@
         invalidateReview('member');
     }
 
-    elements.connect.addEventListener('click', connect);
-    elements.disconnect.addEventListener('click', disconnect);
-    elements.baseBranch.addEventListener('change', async function () {
-        try { await loadBaseSnapshot(elements.baseBranch.value); }
-        catch (error) { setStatus(elements.authStatus, apiErrorMessage(error), 'error'); }
-    });
+    elements.signInForm.addEventListener('submit', signIn);
+    elements.signOut.addEventListener('click', signOut);
     elements.publicationTab.addEventListener('click', function () { activateTab('publication'); });
     elements.memberTab.addEventListener('click', function () { activateTab('member'); });
     elements.memberType.addEventListener('change', updateMemberType);
@@ -825,6 +574,7 @@
         renderPublicationPreview(result.draft);
         prepareReview('publication', result.draft);
     });
+
     elements.memberForm.addEventListener('submit', function (event) {
         event.preventDefault();
         const result = memberDraft();
@@ -858,15 +608,11 @@
     elements.publish.addEventListener('click', submitReview);
 
     window.addEventListener('pagehide', function () {
-        state.token = '';
+        elements.password.value = '';
         clearPreviewUrl('publication');
         clearPreviewUrl('member');
     });
 
-    if (dryRun) {
-        elements.connect.textContent = 'Connect dry-run fixture';
-        elements.token.required = false;
-        setStatus(elements.authStatus, 'Local dry-run mode is available. It never sends GitHub mutation requests.', 'success');
-    }
     updateMemberType();
+    initializeAuthentication();
 }());

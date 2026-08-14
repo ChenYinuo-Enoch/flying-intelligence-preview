@@ -1,242 +1,253 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" class="interactive-final-theme immersive-airspace-round3">
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="robots" content="noindex, nofollow">
-    <title>Flying Intelligence Content Manager</title>
-    <link rel="stylesheet" href="admin.css?v=20260813-1">
+    <title>Flying Intelligence Admin</title>
+    <link rel="shortcut icon" type="image/x-icon" href="../files/images/FlyingIntelligence_LOGO.png">
+    <link rel="stylesheet" href="../css/bootstrap.min.css">
+    <link rel="stylesheet" href="../css/style.css">
+    <link rel="stylesheet" href="../css/site-refresh.css">
+    <link rel="stylesheet" href="../css/interactive-airspace.css">
+    <link rel="stylesheet" href="../css/interactive-final.css?v=20260727" data-interactive-final="styles">
+    <link rel="stylesheet" href="../css/immersive-round3.css?v=20260804-latest2" data-immersive-round3="styles">
+    <link rel="stylesheet" href="admin.css?v=20260814-1">
 </head>
-<body data-repository="ChenYinuo-Enoch/flying-intelligence.github.io"
-      data-parent-repository="Flying-Intelligence/flying-intelligence.github.io">
-    <header class="admin-header">
-        <a class="admin-brand" href="../index.html" aria-label="Return to Flying Intelligence home">
-            <img src="../files/images/FlyingIntelligence_LOGO.png" alt="">
-            <span>Flying Intelligence</span>
-        </a>
-        <div>
-            <p class="admin-eyebrow">Content operations</p>
-            <h1>Admin Content Manager</h1>
-        </div>
-    </header>
-
-    <main class="admin-shell">
-        <section class="admin-panel auth-panel" aria-labelledby="authentication-title">
-            <div class="panel-heading">
-                <div>
-                    <p class="panel-index">01 / Authorization</p>
-                    <h2 id="authentication-title">Connect to GitHub</h2>
-                </div>
-                <span class="status-badge" id="connection-badge" data-state="idle">Not connected</span>
+<body class="admin-page">
+    <main class="admin-main">
+        <header class="admin-hero">
+            <div class="admin-hero__copy">
+                <p class="admin-hero__label">Flying Intelligence</p>
+                <h1>Admin Content Manager</h1>
+                <p>Securely prepare publications and member updates for review.</p>
             </div>
-            <p class="security-note">Use a fine-grained token with access to this fork. The token remains only in this page's memory and is cleared on refresh or disconnect.</p>
-            <div class="auth-controls">
-                <label for="github-token">GitHub Access Token</label>
-                <div class="token-row">
-                    <input id="github-token" type="password" autocomplete="off" autocapitalize="none" spellcheck="false"
-                           aria-describedby="token-help" placeholder="Fine-grained token">
-                    <button class="button button-primary" id="connect-button" type="button">Connect</button>
-                    <button class="button button-secondary" id="disconnect-button" type="button" hidden>Disconnect</button>
-                </div>
-                <p id="token-help" class="field-help">The token is sent only to api.github.com and is never saved by this page.</p>
-            </div>
-            <div class="status-message" id="auth-status" role="status" aria-live="polite"></div>
+        </header>
 
-            <dl class="repository-status" id="repository-status" hidden>
-                <div><dt>Authenticated user</dt><dd id="authenticated-user">—</dd></div>
-                <div><dt>Repository</dt><dd id="repository-name">—</dd></div>
-                <div>
-                    <dt><label for="base-branch">Target Base Branch</label></dt>
-                    <dd><select id="base-branch"></select></dd>
-                </div>
-                <div><dt>Base commit</dt><dd><code id="base-commit">—</code></dd></div>
-            </dl>
-        </section>
-
-        <section class="admin-workspace" id="admin-workspace" hidden aria-labelledby="workspace-title">
-            <div class="workspace-heading">
-                <div>
-                    <p class="panel-index">02 / Compose</p>
-                    <h2 id="workspace-title">Add website content</h2>
-                </div>
-                <div class="admin-tabs" role="tablist" aria-label="Content type">
-                    <button type="button" role="tab" aria-selected="true" aria-controls="publication-panel" id="publication-tab">Add Publication</button>
-                    <button type="button" role="tab" aria-selected="false" aria-controls="member-panel" id="member-tab">Add Member</button>
-                </div>
-            </div>
-
-            <section class="content-panel" id="publication-panel" role="tabpanel" aria-labelledby="publication-tab">
-                <form id="publication-form" aria-describedby="publication-errors" novalidate>
-                    <div class="form-column admin-panel">
-                        <div class="panel-heading compact"><h3>Publication information</h3></div>
-                        <div class="field-grid">
-                            <div class="field field-wide">
-                                <label for="publication-title">Title <span aria-hidden="true">*</span></label>
-                                <textarea id="publication-title" rows="3" required></textarea>
-                            </div>
-                            <div class="field field-wide">
-                                <label for="publication-authors">Authors <span aria-hidden="true">*</span></label>
-                                <textarea id="publication-authors" rows="4" required aria-describedby="authors-help"></textarea>
-                                <p id="authors-help" class="field-help">Plain text and existing-style &lt;a href="…"&gt; author links are supported.</p>
-                            </div>
-                            <div class="field">
-                                <label for="publication-date">Published date <span aria-hidden="true">*</span></label>
-                                <input id="publication-date" type="text" required placeholder="Jan. 2027">
-                            </div>
-                            <div class="field">
-                                <label for="publication-venue">Venue <span aria-hidden="true">*</span></label>
-                                <input id="publication-venue" type="text" required placeholder="Conference or journal">
-                            </div>
-                            <div class="field field-wide">
-                                <label for="publication-url">Paper or project URL <span aria-hidden="true">*</span></label>
-                                <input id="publication-url" type="url" required placeholder="https://…">
-                            </div>
-                            <div class="field field-wide">
-                                <label for="publication-tags">Research directions <span aria-hidden="true">*</span></label>
-                                <input id="publication-tags" type="text" required list="research-direction-options" placeholder="Comma-separated">
-                                <datalist id="research-direction-options"></datalist>
-                            </div>
-                            <div class="field">
-                                <label for="publication-cover-position">Cover position</label>
-                                <input id="publication-cover-position" type="text" value="50% 50%" placeholder="50% 50%">
-                            </div>
-                            <div class="field">
-                                <label for="publication-fit">Image fit</label>
-                                <select id="publication-fit"><option value="contain">Contain</option><option value="cover">Cover</option></select>
-                            </div>
-                            <div class="field field-wide">
-                                <label for="publication-video">Existing video path or URL</label>
-                                <input id="publication-video" type="text" placeholder="files/videos/example.mp4">
-                            </div>
-                            <div class="field field-wide">
-                                <label for="publication-image">Publication image <span aria-hidden="true">*</span></label>
-                                <input id="publication-image" type="file" accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp" required>
-                                <p class="field-help">JPG, PNG, or WebP; maximum 5 MB. The original image is not cropped or recompressed.</p>
-                            </div>
-                        </div>
-                        <div class="form-errors" id="publication-errors" role="alert" hidden></div>
-                        <div class="form-actions">
-                            <button class="button button-primary" type="submit">Validate &amp; Preview</button>
-                            <button class="button button-secondary" type="reset">Cancel / Reset</button>
-                        </div>
-                    </div>
-                    <aside class="preview-column admin-panel" aria-labelledby="publication-preview-title">
-                        <div class="panel-heading compact"><h3 id="publication-preview-title">Publication Preview</h3></div>
-                        <div class="empty-preview" id="publication-preview-empty">Complete the form to preview the publication card.</div>
-                        <article class="publication-preview" id="publication-preview" hidden>
-                            <img id="publication-preview-image" alt="">
-                            <div class="preview-copy">
-                                <p class="preview-meta" id="publication-preview-meta"></p>
-                                <h4 id="publication-preview-heading"></h4>
-                                <div id="publication-preview-authors"></div>
-                                <div class="preview-tags" id="publication-preview-tags"></div>
-                            </div>
-                        </article>
-                    </aside>
-                </form>
-            </section>
-
-            <section class="content-panel" id="member-panel" role="tabpanel" aria-labelledby="member-tab" hidden>
-                <form id="member-form" aria-describedby="member-errors" novalidate>
-                    <div class="form-column admin-panel">
-                        <div class="panel-heading compact"><h3>Member information</h3></div>
-                        <div class="field-grid">
-                            <div class="field">
-                                <label for="member-type">Member type <span aria-hidden="true">*</span></label>
-                                <select id="member-type" required><option value="member">Member</option><option value="advisor">Team Advisor</option></select>
-                            </div>
-                            <div class="field" id="member-year-field">
-                                <label for="member-year">Year <span aria-hidden="true">*</span></label>
-                                <input id="member-year" type="text" inputmode="numeric" pattern="[0-9]{4}" maxlength="4" required placeholder="2027">
-                            </div>
-                            <div class="field field-wide">
-                                <label for="member-name">Name <span aria-hidden="true">*</span></label>
-                                <input id="member-name" type="text" required>
-                            </div>
-                            <div class="field field-wide">
-                                <label for="member-time">Existing-style time text</label>
-                                <input id="member-time" type="text" placeholder="(Fall 2027 - Present)">
-                            </div>
-                            <div class="field field-wide">
-                                <label for="member-institution">Institution <span aria-hidden="true">*</span></label>
-                                <textarea id="member-institution" rows="2" required></textarea>
-                            </div>
-                            <div class="field field-wide">
-                                <label for="member-research">Research description <span aria-hidden="true">*</span></label>
-                                <textarea id="member-research" rows="3" required></textarea>
-                            </div>
-                            <div class="field field-wide">
-                                <label for="member-email">Email display text <span aria-hidden="true">*</span></label>
-                                <input id="member-email" type="text" required>
-                            </div>
-                            <div class="field field-wide">
-                                <label for="member-profile">Personal page</label>
-                                <input id="member-profile" type="text" placeholder="https://… or ../person/…">
-                            </div>
-                            <div class="field field-wide">
-                                <label for="member-scholar">Google Scholar or other profile link</label>
-                                <input id="member-scholar" type="url" placeholder="https://…">
-                            </div>
-                            <div class="field field-wide">
-                                <label for="member-image">Photo <span aria-hidden="true">*</span></label>
-                                <input id="member-image" type="file" accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp" required>
-                                <p class="field-help">JPG, PNG, or WebP; maximum 5 MB. The file is preserved without crop, filter, or recompression.</p>
-                            </div>
-                        </div>
-                        <div class="form-errors" id="member-errors" role="alert" hidden></div>
-                        <div class="form-actions">
-                            <button class="button button-primary" type="submit">Validate &amp; Preview</button>
-                            <button class="button button-secondary" type="reset">Cancel / Reset</button>
-                        </div>
-                    </div>
-                    <aside class="preview-column admin-panel" aria-labelledby="member-preview-title">
-                        <div class="panel-heading compact"><h3 id="member-preview-title">Member Card Preview</h3></div>
-                        <div class="empty-preview" id="member-preview-empty">Complete the form to preview the member card.</div>
-                        <article class="member-preview" id="member-preview" hidden>
-                            <img id="member-preview-image" alt="">
-                            <div class="preview-copy">
-                                <p class="preview-group" id="member-preview-group"></p>
-                                <h4 id="member-preview-name"></h4>
-                                <p id="member-preview-time"></p>
-                                <p id="member-preview-institution"></p>
-                                <p id="member-preview-research"></p>
-                                <p id="member-preview-email"></p>
-                                <div class="member-preview-links" id="member-preview-links"></div>
-                            </div>
-                        </article>
-                    </aside>
-                </form>
-            </section>
-
-            <section class="admin-panel review-panel" id="review-panel" hidden aria-labelledby="review-title">
+        <div class="admin-shell">
+            <section class="admin-panel auth-panel" aria-labelledby="authentication-title">
                 <div class="panel-heading">
-                    <div><p class="panel-index">03 / Review</p><h2 id="review-title">Review Changes</h2></div>
-                    <span class="status-badge" data-state="ready">Ready</span>
+                    <div>
+                        <p class="panel-index">Secure access</p>
+                        <h2 id="authentication-title">Administrator Sign In</h2>
+                    </div>
+                    <span class="status-badge" id="connection-badge" data-state="idle">Signed out</span>
                 </div>
-                <dl class="review-summary">
-                    <div><dt>Target repository</dt><dd id="review-repository"></dd></div>
-                    <div><dt>Base branch</dt><dd id="review-base"></dd></div>
-                    <div><dt>New content branch</dt><dd id="review-branch"></dd></div>
-                </dl>
-                <h3>Files to change</h3>
-                <ul class="file-list" id="review-files"></ul>
-                <p class="security-note">Publishing creates a new branch and one commit, then opens a Pull Request. It never commits to the selected base branch and never merges the Pull Request.</p>
-                <div class="status-message" id="submit-status" role="status" aria-live="polite"></div>
-                <button class="button button-primary" id="publish-button" type="button">Submit as Pull Request</button>
+
+                <form id="sign-in-form" class="sign-in-form" novalidate>
+                    <div class="field">
+                        <label for="account">Account</label>
+                        <input id="account" type="email" autocomplete="username" autocapitalize="none" spellcheck="false" required>
+                    </div>
+                    <div class="field">
+                        <label for="password">Password</label>
+                        <input id="password" type="password" autocomplete="current-password" required>
+                    </div>
+                    <button class="button button-primary" id="sign-in-button" type="submit">Sign In</button>
+                </form>
+
+                <div class="signed-in-row" id="signed-in-row" hidden>
+                    <span class="administrator-label">Administrator</span>
+                    <button class="button button-secondary" id="sign-out-button" type="button">Sign Out</button>
+                </div>
+                <div class="status-message" id="auth-status" role="status" aria-live="polite">Preparing secure sign-in.</div>
             </section>
 
-            <section class="admin-panel success-panel" id="success-panel" hidden aria-labelledby="success-title">
-                <p class="panel-index">04 / Complete</p>
-                <h2 id="success-title">Changes submitted successfully</h2>
-                <dl class="review-summary">
-                    <div><dt>Branch</dt><dd id="success-branch"></dd></div>
-                    <div><dt>Commit</dt><dd id="success-commit"></dd></div>
-                    <div><dt>Pull Request</dt><dd id="success-pr"></dd></div>
-                </dl>
-                <a class="button button-primary" id="success-pr-link" href="#" target="_blank" rel="noopener noreferrer">View Pull Request</a>
+            <section class="admin-workspace" id="admin-workspace" hidden aria-labelledby="workspace-title">
+                <div class="workspace-heading">
+                    <div>
+                        <p class="panel-index">Content update</p>
+                        <h2 id="workspace-title">Add website content</h2>
+                    </div>
+                    <div class="admin-tabs" role="tablist" aria-label="Content type">
+                        <button type="button" role="tab" aria-selected="true" aria-controls="publication-panel" id="publication-tab">Add Publication</button>
+                        <button type="button" role="tab" aria-selected="false" aria-controls="member-panel" id="member-tab">Add Member</button>
+                    </div>
+                </div>
+
+                <section class="content-panel" id="publication-panel" role="tabpanel" aria-labelledby="publication-tab">
+                    <form id="publication-form" aria-describedby="publication-errors" novalidate>
+                        <div class="form-column admin-panel">
+                            <div class="panel-heading compact"><h3>Publication information</h3></div>
+                            <div class="field-grid">
+                                <div class="field field-wide">
+                                    <label for="publication-title">Title <span aria-hidden="true">*</span></label>
+                                    <textarea id="publication-title" rows="3" required></textarea>
+                                </div>
+                                <div class="field field-wide">
+                                    <label for="publication-authors">Authors <span aria-hidden="true">*</span></label>
+                                    <textarea id="publication-authors" rows="4" required aria-describedby="authors-help"></textarea>
+                                    <p id="authors-help" class="field-help">Plain text and existing-style &lt;a href="..."&gt; author links are supported.</p>
+                                </div>
+                                <div class="field">
+                                    <label for="publication-date">Published date <span aria-hidden="true">*</span></label>
+                                    <input id="publication-date" type="text" required placeholder="Jan. 2027">
+                                </div>
+                                <div class="field">
+                                    <label for="publication-venue">Venue <span aria-hidden="true">*</span></label>
+                                    <input id="publication-venue" type="text" required placeholder="Conference or journal">
+                                </div>
+                                <div class="field field-wide">
+                                    <label for="publication-url">Paper or project URL <span aria-hidden="true">*</span></label>
+                                    <input id="publication-url" type="url" required placeholder="https://...">
+                                </div>
+                                <div class="field field-wide">
+                                    <label for="publication-tags">Research directions <span aria-hidden="true">*</span></label>
+                                    <input id="publication-tags" type="text" required list="research-direction-options" placeholder="Comma-separated">
+                                    <datalist id="research-direction-options"></datalist>
+                                </div>
+                                <div class="field">
+                                    <label for="publication-cover-position">Cover position</label>
+                                    <input id="publication-cover-position" type="text" value="50% 50%" placeholder="50% 50%">
+                                </div>
+                                <div class="field">
+                                    <label for="publication-fit">Image fit</label>
+                                    <select id="publication-fit"><option value="contain">Contain</option><option value="cover">Cover</option></select>
+                                </div>
+                                <div class="field field-wide">
+                                    <label for="publication-video">Existing video path or URL</label>
+                                    <input id="publication-video" type="text" placeholder="files/videos/example.mp4">
+                                </div>
+                                <div class="field field-wide">
+                                    <label for="publication-image">Publication image <span aria-hidden="true">*</span></label>
+                                    <input id="publication-image" type="file" accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp" required>
+                                    <p class="field-help">JPG, PNG, or WebP; maximum 5 MB. The original image is not cropped or recompressed.</p>
+                                </div>
+                            </div>
+                            <div class="form-errors" id="publication-errors" role="alert" hidden></div>
+                            <div class="form-actions">
+                                <button class="button button-primary" type="submit">Validate &amp; Preview</button>
+                                <button class="button button-secondary" type="reset">Cancel / Reset</button>
+                            </div>
+                        </div>
+                        <aside class="preview-column admin-panel" aria-labelledby="publication-preview-title">
+                            <div class="panel-heading compact"><h3 id="publication-preview-title">Publication Preview</h3></div>
+                            <div class="empty-preview" id="publication-preview-empty">Complete the form to preview the publication card.</div>
+                            <article class="publication-preview" id="publication-preview" hidden>
+                                <img id="publication-preview-image" alt="">
+                                <div class="preview-copy">
+                                    <p class="preview-meta" id="publication-preview-meta"></p>
+                                    <h4 id="publication-preview-heading"></h4>
+                                    <div id="publication-preview-authors"></div>
+                                    <div class="preview-tags" id="publication-preview-tags"></div>
+                                </div>
+                            </article>
+                        </aside>
+                    </form>
+                </section>
+
+                <section class="content-panel" id="member-panel" role="tabpanel" aria-labelledby="member-tab" hidden>
+                    <form id="member-form" aria-describedby="member-errors" novalidate>
+                        <div class="form-column admin-panel">
+                            <div class="panel-heading compact"><h3>Member information</h3></div>
+                            <div class="field-grid">
+                                <div class="field">
+                                    <label for="member-type">Member type <span aria-hidden="true">*</span></label>
+                                    <select id="member-type" required><option value="member">Member</option><option value="advisor">Team Advisor</option></select>
+                                </div>
+                                <div class="field" id="member-year-field">
+                                    <label for="member-year">Year <span aria-hidden="true">*</span></label>
+                                    <input id="member-year" type="text" inputmode="numeric" pattern="[0-9]{4}" maxlength="4" required placeholder="2027">
+                                </div>
+                                <div class="field field-wide">
+                                    <label for="member-name">Name <span aria-hidden="true">*</span></label>
+                                    <input id="member-name" type="text" required>
+                                </div>
+                                <div class="field field-wide">
+                                    <label for="member-time">Existing-style time text</label>
+                                    <input id="member-time" type="text" placeholder="(Fall 2027 - Present)">
+                                </div>
+                                <div class="field field-wide">
+                                    <label for="member-institution">Institution <span aria-hidden="true">*</span></label>
+                                    <textarea id="member-institution" rows="2" required></textarea>
+                                </div>
+                                <div class="field field-wide">
+                                    <label for="member-research">Research description <span aria-hidden="true">*</span></label>
+                                    <textarea id="member-research" rows="3" required></textarea>
+                                </div>
+                                <div class="field field-wide">
+                                    <label for="member-email">Email display text <span aria-hidden="true">*</span></label>
+                                    <input id="member-email" type="text" required>
+                                </div>
+                                <div class="field field-wide">
+                                    <label for="member-profile">Personal page</label>
+                                    <input id="member-profile" type="text" placeholder="https://... or ../person/...">
+                                </div>
+                                <div class="field field-wide">
+                                    <label for="member-scholar">Google Scholar or other profile link</label>
+                                    <input id="member-scholar" type="url" placeholder="https://...">
+                                </div>
+                                <div class="field field-wide">
+                                    <label for="member-image">Photo <span aria-hidden="true">*</span></label>
+                                    <input id="member-image" type="file" accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp" required>
+                                    <p class="field-help">JPG, PNG, or WebP; maximum 5 MB. The file is preserved without crop, filter, or recompression.</p>
+                                </div>
+                            </div>
+                            <div class="form-errors" id="member-errors" role="alert" hidden></div>
+                            <div class="form-actions">
+                                <button class="button button-primary" type="submit">Validate &amp; Preview</button>
+                                <button class="button button-secondary" type="reset">Cancel / Reset</button>
+                            </div>
+                        </div>
+                        <aside class="preview-column admin-panel" aria-labelledby="member-preview-title">
+                            <div class="panel-heading compact"><h3 id="member-preview-title">Member Card Preview</h3></div>
+                            <div class="empty-preview" id="member-preview-empty">Complete the form to preview the member card.</div>
+                            <article class="member-preview" id="member-preview" hidden>
+                                <img id="member-preview-image" alt="">
+                                <div class="preview-copy">
+                                    <p class="preview-group" id="member-preview-group"></p>
+                                    <h4 id="member-preview-name"></h4>
+                                    <p id="member-preview-time"></p>
+                                    <p id="member-preview-institution"></p>
+                                    <p id="member-preview-research"></p>
+                                    <p id="member-preview-email"></p>
+                                    <div class="member-preview-links" id="member-preview-links"></div>
+                                </div>
+                            </article>
+                        </aside>
+                    </form>
+                </section>
+
+                <section class="admin-panel review-panel" id="review-panel" hidden aria-labelledby="review-title">
+                    <div class="panel-heading">
+                        <div><p class="panel-index">Review</p><h2 id="review-title">Review Changes</h2></div>
+                        <span class="status-badge" data-state="ready">Ready</span>
+                    </div>
+                    <dl class="review-summary">
+                        <div><dt>Update type</dt><dd id="review-type"></dd></div>
+                        <div><dt>Record</dt><dd id="review-name"></dd></div>
+                    </dl>
+                    <p class="security-note">Submitting sends this validated update to the protected review service. It does not publish directly.</p>
+                    <div class="status-message" id="submit-status" role="status" aria-live="polite"></div>
+                    <button class="button button-primary" id="publish-button" type="button">Submit Update</button>
+                </section>
+
+                <section class="admin-panel success-panel" id="success-panel" hidden aria-labelledby="success-title">
+                    <p class="panel-index">Complete</p>
+                    <h2 id="success-title">Update submitted successfully.</h2>
+                    <p>Your update has been submitted for review.</p>
+                </section>
             </section>
-        </section>
+        </div>
     </main>
-    <script src="admin.js?v=20260813-1"></script>
+
+    <footer class="footer">
+        <div class="container">
+            <div class="row">
+                <div class="col-12">
+                    <div class="copyright">
+                        <p>&copy; <span id="current-year"></span> All rights reserved | Built upon
+                            <a href="https://colorlib.com" target="_blank" rel="noopener noreferrer">Colorlib</a>
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <script>document.getElementById('current-year').textContent = new Date().getFullYear();</script>
+    <script src="../js/interactive-airspace.js?v=20260814-admin1"></script>
+    <script src="firebase-config.js?v=20260814-1"></script>
+    <script type="module" src="admin.js?v=20260814-1"></script>
 </body>
 </html>

@@ -20,6 +20,7 @@
         if (path.includes('/pages/resource.html')) return 'resource';
         if (path.includes('/pages/research.html')) return 'research';
         if (path.includes('/pages/direction_papers.html')) return 'direction';
+        if (path.includes('/admin/')) return 'admin';
         return 'home';
     }
 
@@ -30,7 +31,8 @@
             { key: 'home', number: '01', label: 'Home', path: 'index.html' },
             { key: 'publication', number: '02', label: 'Publication', path: 'pages/publication.html' },
             { key: 'group', number: '03', label: 'Group', path: 'pages/group.html' },
-            { key: 'resource', number: '04', label: 'Resource', path: 'pages/resource.html' }
+            { key: 'resource', number: '04', label: 'Resource', path: 'pages/resource.html' },
+            { key: 'admin', number: '05', label: 'Admin', path: 'admin/' }
         ];
         const activePage = currentPage();
         const activeKey = activePage === 'research' || activePage === 'direction' ? 'publication' : activePage;
@@ -47,7 +49,7 @@
                     <img src="${pathFor('files/images/FlyingIntelligence_LOGO.png')}" alt="">
                 </a>
                 <nav class="airspace-quick-links" aria-label="Quick navigation">
-                    ${items.slice(1).map(function (item) {
+                    ${items.slice(1, 4).map(function (item) {
                         const current = item.key === activeKey ? ' aria-current="page"' : '';
                         return `<a class="airspace-quick-link" href="${pathFor(item.path)}"${current}>${item.label}</a>`;
                     }).join('')}
@@ -98,6 +100,11 @@
         }
 
         trigger.addEventListener('click', function () { setOpen(true, false); });
+        trigger.addEventListener('keydown', function (event) {
+            if (event.key !== 'Enter' && event.key !== ' ') return;
+            event.preventDefault();
+            setOpen(true, false);
+        });
         close.addEventListener('click', function () { setOpen(false, true); });
         menu.addEventListener('click', function (event) {
             if (event.target === menu) setOpen(false, true);
