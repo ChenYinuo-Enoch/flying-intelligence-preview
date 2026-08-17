@@ -6,7 +6,7 @@
 }(typeof globalThis !== 'undefined' ? globalThis : this, function () {
     'use strict';
 
-    const PLACEHOLDER = 'CHANGE_ME';
+    const PLACEHOLDER = 'UNCONFIGURED';
 
     function normalizeAccount(value) {
         return String(value || '').trim();

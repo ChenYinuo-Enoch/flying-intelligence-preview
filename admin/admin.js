@@ -52,7 +52,7 @@
         reviewTarget: document.getElementById('review-target'),
         reviewImage: document.getElementById('review-image'),
         preparedOutput: document.getElementById('prepared-output'),
-        publish: document.getElementById('publish-button'),
+        previewUpdate: document.getElementById('preview-update-button'),
         submitStatus: document.getElementById('submit-status'),
         successPanel: document.getElementById('success-panel')
     };
@@ -520,7 +520,7 @@
         elements.preparedOutput.textContent = prepared.entry;
         elements.reviewPanel.hidden = false;
         elements.successPanel.hidden = true;
-        elements.publish.disabled = false;
+        elements.previewUpdate.disabled = false;
         setStatus(elements.submitStatus, '', '');
         elements.reviewPanel.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
@@ -532,10 +532,10 @@
         elements.successPanel.hidden = true;
     }
 
-    function prepareUpdate() {
+    function previewUpdate() {
         if (!state.authorized || !state.review) return;
         elements.successPanel.hidden = false;
-        setStatus(elements.submitStatus, 'Local update draft prepared for manual copy. No website or remote data was changed.', 'success');
+        setStatus(elements.submitStatus, 'Preview ready. No website files or remote content have been changed.', 'success');
         elements.successPanel.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
 
@@ -602,7 +602,7 @@
             invalidateReview('member');
         }, 0);
     });
-    elements.publish.addEventListener('click', prepareUpdate);
+    elements.previewUpdate.addEventListener('click', previewUpdate);
 
     window.addEventListener('pagehide', function () {
         elements.password.value = '';

@@ -7,7 +7,7 @@ const require = createRequire(import.meta.url);
 const auth = require('../simple-auth.js');
 
 test('placeholder configuration stays locked', function () {
-    assert.equal(auth.isConfigured({ account: 'CHANGE_ME', passwordHash: 'CHANGE_ME' }), false);
+    assert.equal(auth.isConfigured({ account: 'UNCONFIGURED', passwordHash: 'UNCONFIGURED' }), false);
 });
 
 test('dynamically generated credentials accept only the exact account and password', async function () {
