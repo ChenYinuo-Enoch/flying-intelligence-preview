@@ -1,11 +1,11 @@
 (function () {
     'use strict';
 
-    const FIREBASE_SDK_VERSION = '12.16.0';
+    const SESSION_KEY = 'adminUnlocked';
     const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
     const IMAGE_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp']);
-    const settings = window.FLYING_INTELLIGENCE_FIREBASE || {};
-    const localHost = ['localhost', '127.0.0.1', '::1'].includes(window.location.hostname);
+    const authSettings = window.FLYING_INTELLIGENCE_SIMPLE_AUTH || {};
+    const authApi = window.FLYING_INTELLIGENCE_SIMPLE_AUTH_API;
 
     const elements = {
         signInForm: document.getElementById('sign-in-form'),
@@ -49,21 +49,21 @@
         reviewPanel: document.getElementById('review-panel'),
         reviewType: document.getElementById('review-type'),
         reviewName: document.getElementById('review-name'),
+        reviewTarget: document.getElementById('review-target'),
+        reviewImage: document.getElementById('review-image'),
+        preparedOutput: document.getElementById('prepared-output'),
         publish: document.getElementById('publish-button'),
         submitStatus: document.getElementById('submit-status'),
         successPanel: document.getElementById('success-panel')
     };
 
     const state = {
-        auth: null,
-        callable: null,
         authorized: false,
-        submitting: false,
         review: null,
         publicationRecords: [],
         memberRecords: [],
-        previewUrls: { publication: '', member: '' },
-        authApi: null
+        imagePaths: new Set(),
+        previewUrls: { publication: '', member: '' }
     };
 
     function setStatus(element, message, status) {
@@ -103,6 +103,7 @@
         state.review = null;
         state.publicationRecords = [];
         state.memberRecords = [];
+        state.imagePaths = new Set();
         elements.workspace.hidden = true;
         elements.reviewPanel.hidden = true;
         elements.successPanel.hidden = true;
@@ -113,9 +114,9 @@
         elements.signInForm.hidden = false;
         elements.signedInRow.hidden = true;
         elements.password.value = '';
-        elements.signIn.disabled = !state.auth;
+        elements.signIn.disabled = !authApi || !authApi.isConfigured(authSettings);
         setConnectionState('Signed out', 'idle');
-        setStatus(elements.authStatus, message || 'Sign in with an authorized administrator account.', message ? 'error' : '');
+        setStatus(elements.authStatus, message || 'Enter the configured local administrator credentials.', message ? 'error' : '');
     }
 
     function renderAuthorized() {
@@ -124,20 +125,22 @@
         elements.signedInRow.hidden = false;
         elements.signIn.disabled = false;
         setConnectionState('Authorized', 'connected');
-        setStatus(elements.authStatus, 'Administrator access confirmed.', 'success');
+        setStatus(elements.authStatus, 'Local administrator access unlocked for this browser tab.', 'success');
     }
 
-    function isFirebaseConfigReady(config) {
-        return Boolean(config && config.apiKey && config.authDomain && config.projectId && config.appId);
+    function sessionUnlocked() {
+        try { return window.sessionStorage.getItem(SESSION_KEY) === 'true'; }
+        catch (error) { return false; }
     }
 
-    async function loadFirebaseModules() {
-        const base = `https://www.gstatic.com/firebasejs/${FIREBASE_SDK_VERSION}`;
-        return Promise.all([
-            import(`${base}/firebase-app.js`),
-            import(`${base}/firebase-auth.js`),
-            import(`${base}/firebase-functions.js`)
-        ]);
+    function setSessionUnlocked(unlocked) {
+        try {
+            if (unlocked) window.sessionStorage.setItem(SESSION_KEY, 'true');
+            else window.sessionStorage.removeItem(SESSION_KEY);
+            return true;
+        } catch (error) {
+            return false;
+        }
     }
 
     async function loadContentSnapshot() {
@@ -150,81 +153,36 @@
         const membersSource = await responses[1].text();
         state.publicationRecords = parsePublicationRecords(papersSource);
         state.memberRecords = parseMemberRecords(membersSource);
+        state.imagePaths = new Set(state.publicationRecords.map(function (record) { return record.img; })
+            .concat(state.memberRecords.map(function (record) { return record.image; })).filter(Boolean));
         populateDirections(papersSource);
     }
 
-    async function handleAuthState(user) {
-        if (!user) {
-            renderSignedOut();
+    async function initializeAuthentication() {
+        if (!authApi || !authApi.isConfigured(authSettings)) {
+            elements.signIn.disabled = true;
+            setConnectionState('Setup required', 'idle');
+            setStatus(elements.authStatus, 'Administrator credentials have not been configured yet.', 'error');
             return;
         }
 
-        resetProtectedState();
-        elements.signInForm.hidden = true;
-        setConnectionState('Checking access', 'loading');
-        setStatus(elements.authStatus, 'Checking administrator access.', '');
+        elements.signIn.disabled = false;
+        if (!sessionUnlocked()) {
+            renderSignedOut();
+            return;
+        }
         try {
-            const result = await state.callable.checkAdmin({});
-            if (!result || !result.data || result.data.authorized !== true) throw new Error('not-authorized');
             await loadContentSnapshot();
             renderAuthorized();
             elements.workspace.hidden = false;
         } catch (error) {
-            try { await state.authApi.signOut(state.auth); }
-            catch (signOutError) { /* The UI remains locked even if remote sign-out fails. */ }
-            renderSignedOut('Unable to sign in with this account.');
-        }
-    }
-
-    async function initializeAuthentication() {
-        if (!isFirebaseConfigReady(settings.config)) {
-            elements.signIn.disabled = true;
-            setConnectionState('Setup required', 'idle');
-            setStatus(elements.authStatus, 'Administrator sign-in is not configured yet.', 'error');
-            return;
-        }
-
-        try {
-            const modules = await loadFirebaseModules();
-            const appApi = modules[0];
-            const authApi = modules[1];
-            const functionsApi = modules[2];
-            const app = appApi.initializeApp(settings.config);
-            const auth = authApi.getAuth(app);
-            const functions = functionsApi.getFunctions(app, settings.functionsRegion || 'us-central1');
-
-            if (localHost && settings.emulators) {
-                if (settings.emulators.authPort) {
-                    authApi.connectAuthEmulator(auth, `http://127.0.0.1:${settings.emulators.authPort}`, { disableWarnings: true });
-                }
-                if (settings.emulators.functionsPort) {
-                    functionsApi.connectFunctionsEmulator(functions, '127.0.0.1', settings.emulators.functionsPort);
-                }
-            }
-            await authApi.setPersistence(auth, authApi.browserSessionPersistence);
-
-            state.auth = auth;
-            state.authApi = authApi;
-            state.callable = {
-                checkAdmin: functionsApi.httpsCallable(functions, 'getAdminStatus'),
-                submitUpdate: functionsApi.httpsCallable(functions, 'submitUpdate')
-            };
-            elements.signIn.disabled = false;
-            authApi.onAuthStateChanged(auth, function (user) {
-                handleAuthState(user).catch(function () {
-                    renderSignedOut('Unable to sign in with this account.');
-                });
-            });
-        } catch (error) {
-            elements.signIn.disabled = true;
-            setConnectionState('Unavailable', 'error');
-            setStatus(elements.authStatus, 'Secure sign-in is temporarily unavailable.', 'error');
+            setSessionUnlocked(false);
+            renderSignedOut('Unable to load the current website data.');
         }
     }
 
     async function signIn(event) {
         event.preventDefault();
-        if (!state.auth || !state.authApi) return;
         const account = elements.account.value.trim();
         const password = elements.password.value;
         if (!account || !password) {
@@ -234,10 +192,15 @@
 
         elements.signIn.disabled = true;
         setConnectionState('Signing in', 'loading');
-        setStatus(elements.authStatus, 'Signing in securely.', '');
+        setStatus(elements.authStatus, 'Checking local credentials.', '');
         try {
-            await state.authApi.signInWithEmailAndPassword(state.auth, account, password);
+            const valid = await authApi.verifyCredentials(authSettings, account, password);
+            if (!valid || !setSessionUnlocked(true)) throw new Error('invalid-credentials');
+            await loadContentSnapshot();
+            renderAuthorized();
+            elements.workspace.hidden = false;
         } catch (error) {
+            setSessionUnlocked(false);
             renderSignedOut('Unable to sign in with this account.');
         } finally {
             elements.password.value = '';
@@ -247,12 +210,8 @@
 
     async function signOut() {
         resetProtectedState();
-        try {
-            await state.authApi.signOut(state.auth);
-            renderSignedOut();
-        } catch (error) {
-            renderSignedOut('Unable to complete sign out. Please refresh this page.');
-        }
+        setSessionUnlocked(false);
+        renderSignedOut();
     }
 
     function parseQuotedValue(block, key) {
@@ -271,7 +230,8 @@
             records.push({
                 title: title,
                 url: parseQuotedValue(block, 'url'),
-                date: parseQuotedValue(block, 'date')
+                date: parseQuotedValue(block, 'date'),
+                img: parseQuotedValue(block, 'img')
             });
         });
         return records;
@@ -283,7 +243,7 @@
         blocks.forEach(function (block) {
             const id = parseQuotedValue(block, 'id');
             const name = parseQuotedValue(block, 'name');
-            if (id && name) records.push({ id: id, name: name });
+            if (id && name) records.push({ id: id, name: name, image: parseQuotedValue(block, 'image') });
         });
         return records;
     }
@@ -482,10 +442,82 @@
         elements.memberPreview.hidden = false;
     }
 
+    function imageExtension(file) {
+        const match = file.name.toLowerCase().match(/\.(?:jpe?g|png|webp)$/);
+        return match ? match[0] : '';
+    }
+
+    function publicationEntry(draft, imagePath) {
+        const lines = [
+            '    {',
+            `        title: ${JSON.stringify(draft.title)},`,
+            `        url: ${JSON.stringify(draft.url)},`,
+            `        venue: ${JSON.stringify(draft.venue)},`,
+            `        img: ${JSON.stringify(imagePath)},`,
+            `        date: ${JSON.stringify(draft.date)},`,
+            `        authors: ${JSON.stringify(draft.authors)},`,
+            `        tags: ${JSON.stringify(draft.tags)},`
+        ];
+        if (draft.video) lines.push(`        video: ${JSON.stringify(draft.video)},`);
+        lines.push(`        coverPosition: ${JSON.stringify(draft.coverPosition)},`);
+        lines.push(`        mediaFitMode: ${JSON.stringify(draft.mediaFitMode)}`);
+        lines.push('    },');
+        return lines.join('\n');
+    }
+
+    function memberEntry(draft, imagePath) {
+        const links = draft.scholarUrl ? [{ label: 'Google Scholar', url: draft.scholarUrl }] : [];
+        const lines = [
+            '    {',
+            `        id: ${JSON.stringify(draft.id)},`,
+            `        type: ${JSON.stringify(draft.type)},`
+        ];
+        if (draft.type === 'member') lines.push(`        year: ${draft.year},`);
+        lines.push(`        name: ${JSON.stringify(draft.name)},`);
+        lines.push(`        image: ${JSON.stringify(imagePath)},`);
+        lines.push(`        alt: ${JSON.stringify(draft.name)},`);
+        lines.push(`        profileUrl: ${JSON.stringify(draft.profileUrl)},`);
+        lines.push(`        time: ${JSON.stringify(draft.time)},`);
+        lines.push(`        institution: ${JSON.stringify(draft.institution)},`);
+        lines.push(`        research: ${JSON.stringify(draft.research)},`);
+        lines.push(`        email: ${JSON.stringify(draft.email)},`);
+        lines.push(`        links: ${JSON.stringify(links, null, 4).replace(/\n/g, '\n        ')}`);
+        lines.push('    },');
+        return lines.join('\n');
+    }
+
+    function uniqueImagePath(directory, stem, extension) {
+        let path = `${directory}/${stem}${extension}`;
+        let suffix = 2;
+        while (state.imagePaths.has(path)) {
+            path = `${directory}/${stem}-${suffix}${extension}`;
+            suffix += 1;
+        }
+        return path;
+    }
+
+    function buildPreparedUpdate(kind, draft) {
+        const stem = slugify(kind === 'publication' ? draft.title : draft.name, kind);
+        const extension = imageExtension(draft.imageFile);
+        const imagePath = kind === 'publication'
+            ? uniqueImagePath('files/images', stem, extension)
+            : uniqueImagePath('../groups', stem, extension);
+        return {
+            dataPath: kind === 'publication' ? 'papers-data.js' : 'data/members.js',
+            imagePath: imagePath,
+            imageSummary: `${draft.imageFile.name} (${draft.imageFile.type}, ${draft.imageFile.size} bytes) -> ${imagePath}`,
+            entry: kind === 'publication' ? publicationEntry(draft, imagePath) : memberEntry(draft, imagePath)
+        };
+    }
+
     function prepareReview(kind, draft) {
-        state.review = { kind: kind, draft: draft };
+        const prepared = buildPreparedUpdate(kind, draft);
+        state.review = { kind: kind, draft: draft, prepared: prepared };
         elements.reviewType.textContent = kind === 'publication' ? 'Publication' : 'Member';
         elements.reviewName.textContent = kind === 'publication' ? draft.title : draft.name;
+        elements.reviewTarget.textContent = prepared.dataPath;
+        elements.reviewImage.textContent = prepared.imageSummary;
+        elements.preparedOutput.textContent = prepared.entry;
         elements.reviewPanel.hidden = false;
         elements.successPanel.hidden = true;
         elements.publish.disabled = false;
@@ -500,46 +532,11 @@
         elements.successPanel.hidden = true;
     }
 
-    function fileAsBase64(file) {
-        return new Promise(function (resolve, reject) {
-            const reader = new FileReader();
-            reader.onload = function () { resolve(String(reader.result).split(',')[1]); };
-            reader.onerror = function () { reject(new Error('image-read-failed')); };
-            reader.readAsDataURL(file);
-        });
-    }
-
-    async function submitReview() {
-        if (!state.authorized || !state.review || state.submitting) return;
-        state.submitting = true;
-        elements.publish.disabled = true;
-        setStatus(elements.submitStatus, 'Submitting the validated update for review.', '');
-        try {
-            const cleanDraft = Object.assign({}, state.review.draft);
-            const imageFile = cleanDraft.imageFile;
-            delete cleanDraft.imageFile;
-            const response = await state.callable.submitUpdate({
-                kind: state.review.kind,
-                draft: cleanDraft,
-                image: {
-                    name: imageFile.name,
-                    type: imageFile.type,
-                    size: imageFile.size,
-                    base64: await fileAsBase64(imageFile)
-                }
-            });
-            if (!response || !response.data || response.data.success !== true) throw new Error('submission-failed');
-            state.review = null;
-            elements.reviewPanel.hidden = true;
-            elements.successPanel.hidden = false;
-            setStatus(elements.submitStatus, '', '');
-            elements.successPanel.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        } catch (error) {
-            setStatus(elements.submitStatus, 'Unable to submit this update. Please try again.', 'error');
-            elements.publish.disabled = false;
-        } finally {
-            state.submitting = false;
-        }
+    function prepareUpdate() {
+        if (!state.authorized || !state.review) return;
+        elements.successPanel.hidden = false;
+        setStatus(elements.submitStatus, 'Local update draft prepared for manual copy. No website or remote data was changed.', 'success');
+        elements.successPanel.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
 
     function activateTab(kind) {
@@ -605,7 +602,7 @@
             invalidateReview('member');
         }, 0);
     });
-    elements.publish.addEventListener('click', submitReview);
+    elements.publish.addEventListener('click', prepareUpdate);
 
     window.addEventListener('pagehide', function () {
         elements.password.value = '';

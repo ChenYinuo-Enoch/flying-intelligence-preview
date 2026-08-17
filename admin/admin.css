@@ -392,6 +392,34 @@
     font-weight: 700;
 }
 
+.admin-page .admin-main .prepared-label {
+    display: block;
+    margin-bottom: 0.5rem;
+    color: var(--air-ink);
+    font-weight: 700;
+}
+
+.admin-page .admin-main .prepared-output {
+    max-height: 360px;
+    margin: 0 0 1rem;
+    padding: 1rem;
+    overflow: auto;
+    border: 1px solid var(--air-line);
+    border-radius: var(--air-radius-sm);
+    background: rgba(18, 34, 45, 0.96);
+    color: #f6f4ee;
+    font-family: var(--air-mono);
+    font-size: 0.78rem;
+    line-height: 1.65;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+}
+
+.admin-page .admin-main .prepared-output:focus-visible {
+    outline: 3px solid rgba(224, 107, 62, 0.5);
+    outline-offset: 3px;
+}
+
 .admin-page .admin-main .success-panel {
     border-color: rgba(76, 136, 116, 0.42);
     background: rgba(244, 251, 247, 0.94);

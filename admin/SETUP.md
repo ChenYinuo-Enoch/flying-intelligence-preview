@@ -1,6 +1,20 @@
-# Secure administrator setup
+# Administrator setup
 
-The administrator UI is intentionally inactive until a verified Firebase project is connected. Do not add passwords, administrator UIDs, or repository credentials to browser files.
+## Simple Admin Mode (current Spark-compatible mode)
+
+The current page uses a **client-side convenience gate, not secure authentication**. The account and SHA-256 password hash are downloaded to every visitor's browser, so a determined visitor can inspect or bypass the gate. This mode does not protect secrets and must never use a password that is reused anywhere else.
+
+1. Choose a unique, non-sensitive password that is used only for this temporary gate.
+2. In an interactive terminal at the repository root, run `node tools/generate-admin-password-hash.mjs`. Input is hidden and the tool prints only the SHA-256 hash.
+3. Replace `CHANGE_ME` in `admin/simple-auth-config.js` with the chosen account label and generated hash. Never store the plaintext password in this repository.
+4. Reload `/admin/`. A successful sign-in stores only `adminUnlocked=true` in `sessionStorage`, so access ends when the browser tab is closed or Sign Out is selected.
+5. `Prepare Update` keeps a local text draft on the page matching the current `papers-data.js` or `data/members.js` entry format for manual copy. It does not upload the selected image, edit a file, call GitHub, or publish anything.
+
+This mode keeps the Firebase Web configuration and `functions/` source for a future migration, but it does not load Firebase modules or call `getAdminStatus`/`submitUpdate`.
+
+## Server-backed mode (future)
+
+The existing callable Functions source remains the secure design path. It requires deployment and server-side secrets; do not add administrator UIDs or repository credentials to browser files.
 
 1. Install the Firebase CLI manually, sign in, and confirm the intended project with `firebase projects:list`.
 2. Copy `.firebaserc.example` to `.firebaserc` and replace the placeholder with the verified project ID. `.firebaserc` is ignored to prevent accidental project targeting in this open repository.
