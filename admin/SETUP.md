@@ -1,30 +1,40 @@
-# Administrator setup
+# Flying Intelligence Admin setup
 
-## Simple Admin Mode (current Spark-compatible mode)
+## Access model
 
-Simple Admin Mode is a temporary **client-side convenience gate, not secure authentication**. The account and SHA-256 password hash are publicly downloadable, so a technically capable visitor can inspect or bypass the gate. Never reuse this Admin password for Google, GitHub, university systems, email, or any other service.
+The configured `flying-admin` password hash is a client-side convenience gate only. It is not the publishing security boundary. Publishing requires a GitHub account with write access to `ChenYinuo-Enoch/flying-intelligence-preview` and a manual GitHub Actions confirmation.
 
-1. Choose a unique, non-sensitive password that is used only for this temporary gate.
-2. In an interactive terminal at the repository root, run `node tools/generate-admin-password-hash.mjs`. Input is hidden and the tool prints only the SHA-256 hash.
-3. Keep the configured account `flying-admin` and set `passwordHash` in `admin/simple-auth-config.js` to the generated 64-character hash. Never store the plaintext password in this repository.
-4. Reload `/admin/`. A successful sign-in stores only `adminUnlocked=true` in `sessionStorage`, so access ends when the browser tab is closed or Sign Out is selected.
-5. `Preview Update` confirms the website preview and keeps a prepared data entry on the page matching the current `papers-data.js` or `data/members.js` entry format for manual review and copy. It does not upload the selected image, edit a file, call GitHub, or publish anything.
+Never store or enter a GitHub PAT, repository token, Firebase credential, Cloudflare credential, or plaintext Admin password in this repository or in the browser Admin.
 
-This mode includes no GitHub repository credential. It keeps the Firebase Web configuration and `functions/` source for a future migration, but it does not load Firebase modules or call `getAdminStatus`/`submitUpdate`.
+## Preview and package flow
 
-## Server-backed mode (future)
+1. Open `/admin/`, sign in, and prepare Add Publication, Add Member, or Manage Members content.
+2. Select `Validate & Preview`, then `Preview Update`.
+3. Select `Prepare GitHub Publish` and download the JSON package.
+4. From a clean local checkout whose `origin` is the personal Preview repository, run the displayed `tools/stage-admin-update.ps1` command.
+5. Open GitHub Actions and manually run **Admin Publish Preview Update** with the reported staging branch.
 
-The existing callable Functions source remains the secure design path. It requires deployment and server-side secrets; do not add administrator UIDs or repository credentials to browser files.
+Downloading or staging a package does not publish it. Do **not** create a Pull Request for an `admin-staging/*` branch.
 
-1. Install the Firebase CLI manually, sign in, and confirm the intended project with `firebase projects:list`.
-2. Copy `.firebaserc.example` to `.firebaserc` and replace the placeholder with the verified project ID. `.firebaserc` is ignored to prevent accidental project targeting in this open repository.
-3. Register a Firebase Web app. Copy its public Web configuration into `admin/firebase-config.js` as the `config` object.
-4. In Firebase Authentication, enable Email/Password and create the administrator account in the Firebase console. This site intentionally has no sign-up flow. Enable email-enumeration protection.
-5. Record the administrator account UID from Firebase Authentication. At Functions deployment, set `ADMIN_UIDS` to that UID (or a comma-separated server-side allowlist).
-6. Set `TARGET_REPOSITORY` to `ChenYinuo-Enoch/flying-intelligence.github.io` and `TARGET_BASE_BRANCH` to the reviewed production base branch. The function rejects any other repository.
-7. Create a fine-grained repository credential with access only to the fork and only the permissions needed to read contents, write content branches, and open pull requests. Store it with `firebase functions:secrets:set GITHUB_TOKEN`; never place it in a browser file or ordinary environment file.
-8. From the repository root, run `npm --prefix functions install`, then `npm --prefix functions test`.
-9. Deploy only the two functions with `firebase deploy --only functions:getAdminStatus,functions:submitUpdate`.
-10. Add the GitHub Pages domain and local development domains to Firebase Authentication authorized domains, then verify signed-out, wrong-password, non-administrator, administrator, submit, and sign-out states.
+## Fixed publishing target
 
-The content function always reads the latest configured base commit, validates the submitted data and image again, creates a separate content branch with one atomic commit, and opens a pull request. It never commits directly to the base branch and never merges a pull request.
+- Owner: `ChenYinuo-Enoch`
+- Repository: `flying-intelligence-preview`
+- Branch: `main`
+- Staging prefix: `admin-staging/`
+
+The staging helper and workflows reject any other user, repository, main target, package type, or changed path. The formal `Flying-Intelligence/flying-intelligence.github.io` repository is read-only and is never a publishing target.
+
+## Supported updates
+
+- `add_member`
+- `add_publication`
+- `member_status` (`current` or `former`)
+
+Images must be JPG, PNG, or WebP and at most 5 MiB. A Former member cannot retain `present` in the Time field. Delete Member, arbitrary file updates, raw patches, and shell commands are unsupported.
+
+## Rollback
+
+The publish workflow summary reports `ROLLBACK_EXPECTED_SHA`. To roll back, manually run **Admin Rollback Last Update** with that exact SHA. Rollback creates a new `admin: rollback ...` revert commit; it never resets or force-pushes history.
+
+The legacy `functions/` and Firebase configuration files remain in repository history and are not used by this GitHub-only Admin runtime.

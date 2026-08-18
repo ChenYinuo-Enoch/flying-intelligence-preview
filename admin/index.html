@@ -90,7 +90,7 @@
             <section class="admin-panel auth-panel" aria-labelledby="authentication-title">
                 <div class="panel-heading">
                     <div>
-                        <p class="panel-index">Secure access</p>
+                        <p class="panel-index">Local access</p>
                         <h2 id="authentication-title">Administrator Sign In</h2>
                     </div>
                     <span class="status-badge" id="connection-badge" data-state="idle">Signed out</span>
@@ -112,8 +112,8 @@
                     <span class="administrator-label">Administrator</span>
                     <button class="button button-secondary" id="sign-out-button" type="button">Sign Out</button>
                 </div>
-                <div class="status-message" id="auth-status" role="status" aria-live="polite">Preparing secure sign-in.</div>
-                <p class="security-note">Authentication and protected updates are verified by the Preview administrator service. Passwords are never stored in this browser.</p>
+                <div class="status-message" id="auth-status" role="status" aria-live="polite">Preparing local sign-in.</div>
+                <p class="security-note">This client-side convenience gate can be inspected or bypassed. Publishing requires GitHub repository access.</p>
             </section>
 
             <section class="admin-workspace" id="admin-workspace" hidden aria-labelledby="workspace-title">
@@ -333,7 +333,7 @@
                     </dl>
                     <label class="prepared-label" for="prepared-output">Prepared data entry</label>
                     <pre class="prepared-output" id="prepared-output" tabindex="0"></pre>
-                    <p class="security-note">Previewing keeps the prepared update on this page for review. Publishing requires a separate confirmation and targets only the Preview website.</p>
+                    <p class="security-note">Previewing keeps the prepared update on this page for review. It does not upload the image, modify website files, call GitHub, or publish content.</p>
                     <div class="status-message" id="submit-status" role="status" aria-live="polite"></div>
                     <button class="button button-primary" id="preview-update-button" type="button">Preview Update</button>
                 </section>
@@ -342,13 +342,31 @@
                     <p class="panel-index">Preview ready</p>
                     <h2 id="success-title">Update preview ready.</h2>
                     <p id="success-message">Review how this content would appear on the website. No website files or remote content have been changed.</p>
-                    <p class="commit-reference" id="commit-reference" hidden></p>
                     <div class="form-actions publish-actions">
-                        <button class="button button-primary" id="publish-update-button" type="button">Publish Update</button>
-                        <a class="button button-secondary" id="view-website-link" href="https://chenyinuo-enoch.github.io/flying-intelligence-preview/" target="_blank" rel="noopener noreferrer" hidden>View Website</a>
-                        <button class="button button-secondary" id="rollback-update-button" type="button" hidden>Roll Back Last Update</button>
+                        <button class="button button-primary" id="prepare-publish-button" type="button">Prepare GitHub Publish</button>
+                        <a class="button button-secondary" href="https://chenyinuo-enoch.github.io/flying-intelligence-preview/" target="_blank" rel="noopener noreferrer">View Website</a>
                     </div>
                     <div class="status-message" id="publish-status" role="status" aria-live="polite"></div>
+                    <section class="publish-package-panel" id="publish-package-panel" hidden aria-labelledby="publish-package-title">
+                        <p class="panel-index">PUBLISH PACKAGE READY</p>
+                        <h3 id="publish-package-title">GitHub Publish Package</h3>
+                        <p>This update has not been published yet.</p>
+                        <p class="security-note">Do not include private or sensitive information. Staged publish data may be visible in this public repository.</p>
+                        <ol class="publish-steps">
+                            <li><strong>Step 1</strong> Download Publish Package.</li>
+                            <li><strong>Step 2</strong> Run the staging command on your computer.</li>
+                            <li><strong>Step 3</strong> Open GitHub Actions and run “Admin Publish Preview Update”.</li>
+                        </ol>
+                        <div class="form-actions publish-actions">
+                            <a class="button button-primary" id="download-publish-package" href="#" download>Download Publish Package</a>
+                            <button class="button button-secondary" id="copy-staging-command" type="button">Copy Staging Command</button>
+                            <a class="button button-secondary" href="https://github.com/ChenYinuo-Enoch/flying-intelligence-preview/actions/workflows/admin-publish.yml" target="_blank" rel="noopener noreferrer">Instructions</a>
+                            <a class="button button-secondary" href="https://github.com/ChenYinuo-Enoch/flying-intelligence-preview/actions/workflows/admin-rollback.yml" target="_blank" rel="noopener noreferrer">Open GitHub Rollback</a>
+                        </div>
+                        <label class="prepared-label" for="staging-command-output">Staging command</label>
+                        <textarea class="staging-command-output" id="staging-command-output" rows="3" readonly></textarea>
+                        <p class="security-note"><strong>Do NOT create a Pull Request.</strong> The staging branch is used only by the Admin Publish workflow. Only GitHub users with repository write access can complete publishing.</p>
+                    </section>
                 </section>
                     </section>
                 </div>
@@ -395,9 +413,10 @@
     <script src="../js/main.js"></script>
     <script src="../js/interactive-airspace.js?v=20260804-latest2"></script>
     <script src="../data/members.js?v=20260818-status-1"></script>
-    <script src="admin-api-config.js?v=20260818-secure-1"></script>
-    <script src="admin-api.js?v=20260818-secure-1"></script>
-    <script src="admin.js?v=20260818-secure-1"></script>
+    <script src="simple-auth-config.js?v=20260817-final-1"></script>
+    <script src="simple-auth.js?v=20260817-final-1"></script>
+    <script src="publish-package.js?v=20260818-github-only-1"></script>
+    <script src="admin.js?v=20260818-github-only-1"></script>
 </body>
 
 </html>

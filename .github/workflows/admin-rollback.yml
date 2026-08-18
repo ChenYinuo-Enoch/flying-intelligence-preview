@@ -1,0 +1,116 @@
+name: Admin Rollback Last Update
+
+on:
+  workflow_dispatch:
+    inputs:
+      expected_head_sha:
+        description: PUBLISHED_COMMIT_SHA from the Admin Publish workflow summary
+        required: true
+        type: string
+
+concurrency:
+  group: admin-publish-preview-main
+  cancel-in-progress: false
+
+jobs:
+  rollback:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    outputs:
+      rollback_sha: ${{ steps.push.outputs.rollback_sha }}
+    env:
+      EXPECTED_REPOSITORY: ChenYinuo-Enoch/flying-intelligence-preview
+      EXPECTED_HEAD_SHA: ${{ inputs.expected_head_sha }}
+    steps:
+      - name: Verify repository and expected SHA
+        env:
+          ACTUAL_REPOSITORY: ${{ github.repository }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ "$ACTUAL_REPOSITORY" != "$EXPECTED_REPOSITORY" ]]; then
+            echo "This workflow is locked to $EXPECTED_REPOSITORY." >&2
+            exit 1
+          fi
+          if [[ ! "$EXPECTED_HEAD_SHA" =~ ^[a-f0-9]{40}$ ]]; then
+            echo 'Expected head SHA is invalid.' >&2
+            exit 1
+          fi
+
+      - name: Check out trusted main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Verify rollback eligibility and create revert
+        id: push
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch origin main --prune
+          current_head="$(git rev-parse origin/main)"
+          if [[ "$current_head" != "$EXPECTED_HEAD_SHA" ]]; then
+            echo 'The website changed after this Admin update. Automatic rollback is unavailable.' >&2
+            exit 1
+          fi
+          if [[ "$(git rev-list --parents -n 1 "$current_head" | awk '{print NF}')" -ne 2 ]]; then
+            echo 'Only a single-parent Admin commit can be rolled back.' >&2
+            exit 1
+          fi
+          subject="$(git log -1 --format=%s "$current_head")"
+          if [[ "$subject" != admin:* || "$subject" == admin:\ rollback* ]]; then
+            echo 'The current head is not an eligible Admin commit.' >&2
+            exit 1
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git revert --no-edit "$current_head"
+          git commit --amend -m "admin: rollback ${current_head:0:7}"
+          git fetch origin main --prune
+          if [[ "$(git rev-parse origin/main)" != "$current_head" ]]; then
+            echo 'The website changed during rollback. Automatic rollback is unavailable.' >&2
+            exit 1
+          fi
+          git push origin HEAD:main
+          rollback_sha="$(git rev-parse HEAD)"
+          echo "rollback_sha=$rollback_sha" >> "$GITHUB_OUTPUT"
+          {
+            echo "ROLLED_BACK_COMMIT_SHA=$current_head"
+            echo "ROLLBACK_COMMIT_SHA=$rollback_sha"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  deploy:
+    needs: rollback
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Check out rollback main tree
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.rollback.outputs.rollback_sha }}
+
+      - name: Record deployed main SHA
+        env:
+          MAIN_SHA: ${{ needs.rollback.outputs.rollback_sha }}
+        run: |
+          node -e "require('node:fs').writeFileSync('_preview-build.json', JSON.stringify({ mainSha: process.env.MAIN_SHA }) + '\n')"
+
+      - name: Configure Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload rollback main tree
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: .
+
+      - name: Deploy Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

@@ -1,0 +1,161 @@
+name: Admin Publish Preview Update
+
+on:
+  workflow_dispatch:
+    inputs:
+      staging_branch:
+        description: admin-staging/<update-id> reported by the local helper
+        required: true
+        type: string
+
+concurrency:
+  group: admin-publish-preview-main
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    outputs:
+      published_sha: ${{ steps.push.outputs.published_sha }}
+      staging_branch: ${{ steps.guard.outputs.staging_branch }}
+    env:
+      EXPECTED_REPOSITORY: ChenYinuo-Enoch/flying-intelligence-preview
+      STAGING_BRANCH: ${{ inputs.staging_branch }}
+    steps:
+      - name: Verify repository and staging branch
+        id: guard
+        env:
+          ACTUAL_REPOSITORY: ${{ github.repository }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ "$ACTUAL_REPOSITORY" != "$EXPECTED_REPOSITORY" ]]; then
+            echo "This workflow is locked to $EXPECTED_REPOSITORY." >&2
+            exit 1
+          fi
+          if [[ ! "$STAGING_BRANCH" =~ ^admin-staging/[A-Za-z0-9._-]+$ ]]; then
+            echo 'Invalid staging branch.' >&2
+            exit 1
+          fi
+          echo "staging_branch=$STAGING_BRANCH" >> "$GITHUB_OUTPUT"
+
+      - name: Check out trusted main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Read only the staged package
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch --no-tags origin "refs/heads/${STAGING_BRANCH}:refs/remotes/origin/${STAGING_BRANCH}"
+          git show "refs/remotes/origin/${STAGING_BRANCH}:.admin-staging/update.json" > "$RUNNER_TEMP/update.json"
+          expected_id="${STAGING_BRANCH#admin-staging/}"
+          package_id="$(node -e "const fs=require('node:fs'); const p=JSON.parse(fs.readFileSync(process.argv[1],'utf8')); process.stdout.write(String(p.updateId||''));" "$RUNNER_TEMP/update.json")"
+          if [[ "$package_id" != "$expected_id" ]]; then
+            echo 'Package updateId does not match the staging branch.' >&2
+            exit 1
+          fi
+
+      - name: Validate and apply one update
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch origin main --prune
+          remote_main_sha="$(git rev-parse origin/main)"
+          if [[ "$(git rev-parse HEAD)" != "$remote_main_sha" ]]; then
+            echo 'Trusted checkout is not current origin/main.' >&2
+            exit 1
+          fi
+          node scripts/apply-admin-update.mjs \
+            --package "$RUNNER_TEMP/update.json" \
+            --repository . \
+            --expected-base "$remote_main_sha" \
+            --result "$RUNNER_TEMP/apply-result.json"
+
+      - name: Create and push one Admin commit
+        id: push
+        shell: bash
+        run: |
+          set -euo pipefail
+          node -e "const fs=require('node:fs'); const r=JSON.parse(fs.readFileSync(process.argv[1],'utf8')); fs.writeFileSync(process.argv[2], r.commitMessage + '\n');" "$RUNNER_TEMP/apply-result.json" "$RUNNER_TEMP/commit-message.txt"
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A
+          git commit -F "$RUNNER_TEMP/commit-message.txt"
+          base_sha="$(git rev-parse HEAD^)"
+          git fetch origin main --prune
+          if [[ "$(git rev-parse origin/main)" != "$base_sha" ]]; then
+            echo 'The website changed after this update was prepared. Prepare a new update.' >&2
+            exit 1
+          fi
+          git push origin HEAD:main
+          published_sha="$(git rev-parse HEAD)"
+          echo "published_sha=$published_sha" >> "$GITHUB_OUTPUT"
+          {
+            echo "PUBLISHED_COMMIT_SHA=$published_sha"
+            echo "ROLLBACK_EXPECTED_SHA=$published_sha"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  deploy:
+    needs: publish
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Check out published main tree
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.publish.outputs.published_sha }}
+
+      - name: Record deployed main SHA
+        env:
+          MAIN_SHA: ${{ needs.publish.outputs.published_sha }}
+        run: |
+          node -e "require('node:fs').writeFileSync('_preview-build.json', JSON.stringify({ mainSha: process.env.MAIN_SHA }) + '\n')"
+
+      - name: Configure Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload published main tree
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: .
+
+      - name: Deploy Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
+
+  cleanup:
+    needs: [publish, deploy]
+    if: ${{ always() && needs.publish.result == 'success' }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    env:
+      STAGING_BRANCH: ${{ needs.publish.outputs.staging_branch }}
+    steps:
+      - name: Check out main for authenticated cleanup
+        uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - name: Delete only the staging branch
+        continue-on-error: true
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ ! "$STAGING_BRANCH" =~ ^admin-staging/[A-Za-z0-9._-]+$ ]]; then
+            echo 'STAGING_CLEANUP=FAILED' >> "$GITHUB_STEP_SUMMARY"
+            exit 1
+          fi
+          git push origin --delete "$STAGING_BRANCH"
+          echo 'STAGING_CLEANUP=SUCCESS' >> "$GITHUB_STEP_SUMMARY"
