@@ -430,6 +430,115 @@
     color: var(--air-muted);
 }
 
+.admin-page .admin-main .member-management-lists {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1.25rem;
+}
+
+.admin-page .admin-main .member-management-lists h4 {
+    margin: 0 0 0.75rem;
+    color: var(--air-ink);
+    font-size: 1rem;
+}
+
+.admin-page .admin-main .member-management-list {
+    display: grid;
+    gap: 0.65rem;
+}
+
+.admin-page .admin-main .member-management-item {
+    width: 100%;
+    min-height: 70px;
+    padding: 0.85rem 1rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    border: 1px solid var(--air-line);
+    border-radius: var(--air-radius-sm);
+    background: rgba(255, 255, 255, 0.7);
+    color: var(--air-ink);
+    cursor: pointer;
+    text-align: left;
+}
+
+.admin-page .admin-main .member-management-item:hover {
+    border-color: var(--air-orange);
+}
+
+.admin-page .admin-main .member-management-item:focus-visible,
+.admin-page .admin-main .status-choice input:focus-visible {
+    outline: 3px solid rgba(224, 107, 62, 0.5);
+    outline-offset: 3px;
+}
+
+.admin-page .admin-main .member-management-name {
+    display: block;
+    font-weight: 700;
+}
+
+.admin-page .admin-main .member-management-meta {
+    color: var(--air-muted);
+    font-family: var(--air-mono);
+    font-size: 0.72rem;
+    text-transform: uppercase;
+}
+
+.admin-page .admin-main .member-status-editor {
+    margin-top: 1.5rem;
+}
+
+.admin-page .admin-main .member-status-profile {
+    display: grid;
+    grid-template-columns: minmax(150px, 220px) minmax(0, 1fr);
+    gap: 1.4rem;
+    margin-bottom: 1.35rem;
+}
+
+.admin-page .admin-main .member-status-profile img {
+    width: 100%;
+    aspect-ratio: 4 / 5;
+    border-radius: var(--air-radius-sm);
+    background: #f4f1e9;
+    object-fit: cover;
+    object-position: center top;
+}
+
+.admin-page .admin-main .member-status-profile h4 {
+    margin: 0 0 0.5rem;
+    color: var(--air-ink);
+    font-size: 1.55rem;
+}
+
+.admin-page .admin-main .status-choice {
+    margin: 0 0 1.25rem;
+    padding: 1rem;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    border: 1px solid var(--air-line);
+    border-radius: var(--air-radius-sm);
+}
+
+.admin-page .admin-main .status-choice legend {
+    padding: 0 0.35rem;
+    color: var(--air-ink);
+    font-weight: 700;
+}
+
+.admin-page .admin-main .status-choice label {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    cursor: pointer;
+}
+
+.admin-page .admin-main .commit-reference {
+    font-family: var(--air-mono);
+    font-weight: 700;
+}
+
 @media (max-width: 900px) {
     .admin-page .admin-main .sign-in-form,
     .admin-page .admin-main .content-panel form {
@@ -443,6 +552,10 @@
     .admin-page .admin-main .workspace-heading {
         align-items: flex-start;
         flex-direction: column;
+    }
+
+    .admin-page .admin-main .member-management-lists {
+        grid-template-columns: 1fr;
     }
 }
 
@@ -476,6 +589,14 @@
 
     .admin-page .admin-main .signed-in-row .button {
         width: auto;
+    }
+
+    .admin-page .admin-main .member-status-profile {
+        grid-template-columns: 1fr;
+    }
+
+    .admin-page .admin-main .member-status-profile img {
+        max-width: 240px;
     }
 }
 

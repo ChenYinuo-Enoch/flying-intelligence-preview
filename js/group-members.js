@@ -1,5 +1,15 @@
 // Render structured member data without changing the existing Group card design.
-(function () {
+(function (root, factory) {
+    'use strict';
+
+    const api = factory();
+    if (typeof module === 'object' && module.exports) module.exports = api;
+    if (root) root.FLYING_INTELLIGENCE_GROUP_MEMBERS = Object.freeze(api);
+    if (root && root.document) {
+        const records = typeof members !== 'undefined' && Array.isArray(members) ? members : [];
+        api.renderGroup(root.document, records);
+    }
+}(typeof globalThis !== 'undefined' ? globalThis : this, function () {
     'use strict';
 
     function escapeHtml(value) {
@@ -41,12 +51,11 @@
             </div>`;
     }
 
-    function renderGroup() {
-        const root = document.querySelector('.group-page .person-card#people');
-        if (!root || typeof members === 'undefined' || !Array.isArray(members)) return;
-
-        const advisors = members.filter(function (member) { return member.type === 'advisor'; });
-        const years = Array.from(new Set(members
+    function buildGroupMarkup(records) {
+        const currentMembers = records.filter(function (member) { return (member.status || 'current') === 'current'; });
+        const formerMembers = records.filter(function (member) { return member.status === 'former'; });
+        const advisors = currentMembers.filter(function (member) { return member.type === 'advisor'; });
+        const years = Array.from(new Set(currentMembers
             .filter(function (member) { return member.type === 'member'; })
             .map(function (member) { return Number(member.year); })
             .filter(function (year) { return Number.isInteger(year); })))
@@ -56,7 +65,7 @@
             return `<a href="#group-${year}-heading">${year}</a>`;
         }).join('');
         const yearSections = years.map(function (year) {
-            const cards = members
+            const cards = currentMembers
                 .filter(function (member) { return member.type === 'member' && Number(member.year) === year; })
                 .map(memberCard)
                 .join('');
@@ -67,7 +76,13 @@
                 </section>`;
         }).join('');
 
-        root.innerHTML = `
+        const formerSection = formerMembers.length ? `
+            <section class="group-section former-members-section" aria-labelledby="former-members-heading">
+                <h3 class="group-section-heading" id="former-members-heading">Former Members</h3>
+                <div class="member-grid">${formerMembers.map(memberCard).join('')}</div>
+            </section>` : '';
+
+        return `
             <div class="section-title group-page-title">
                 <h2>Team Members</h2>
                 <nav class="group-year-navigation" aria-label="Member year navigation">${navigation}</nav>
@@ -76,8 +91,18 @@
                 <h3 class="group-section-heading" id="faculty-advisor-heading">TEAM ADVISOR</h3>
                 <div class="member-grid advisor-grid">${advisors.map(memberCard).join('')}</div>
             </section>
-            ${yearSections}`;
+            ${yearSections}
+            ${formerSection}`;
     }
 
-    renderGroup();
-}());
+    function renderGroup(documentRef, records) {
+        const container = documentRef.querySelector('.group-page .person-card#people');
+        if (!container || !Array.isArray(records)) return;
+        container.innerHTML = buildGroupMarkup(records);
+    }
+
+    return {
+        buildGroupMarkup: buildGroupMarkup,
+        renderGroup: renderGroup
+    };
+}));

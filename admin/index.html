@@ -90,7 +90,7 @@
             <section class="admin-panel auth-panel" aria-labelledby="authentication-title">
                 <div class="panel-heading">
                     <div>
-                        <p class="panel-index">Local access</p>
+                        <p class="panel-index">Secure access</p>
                         <h2 id="authentication-title">Administrator Sign In</h2>
                     </div>
                     <span class="status-badge" id="connection-badge" data-state="idle">Signed out</span>
@@ -112,8 +112,8 @@
                     <span class="administrator-label">Administrator</span>
                     <button class="button button-secondary" id="sign-out-button" type="button">Sign Out</button>
                 </div>
-                <div class="status-message" id="auth-status" role="status" aria-live="polite">Preparing local sign-in.</div>
-                <p class="security-note">This client-side gate is a temporary convenience feature, not secure authentication. It can be inspected or bypassed by anyone who can access the site.</p>
+                <div class="status-message" id="auth-status" role="status" aria-live="polite">Preparing secure sign-in.</div>
+                <p class="security-note">Authentication and protected updates are verified by the Preview administrator service. Passwords are never stored in this browser.</p>
             </section>
 
             <section class="admin-workspace" id="admin-workspace" hidden aria-labelledby="workspace-title">
@@ -125,6 +125,7 @@
                     <div class="admin-tabs" role="tablist" aria-label="Content type">
                         <button type="button" role="tab" aria-selected="true" aria-controls="publication-panel" id="publication-tab">Add Publication</button>
                         <button type="button" role="tab" aria-selected="false" aria-controls="member-panel" id="member-tab">Add Member</button>
+                        <button type="button" role="tab" aria-selected="false" aria-controls="manage-members-panel" id="manage-members-tab">Manage Members</button>
                     </div>
                 </div>
 
@@ -271,6 +272,54 @@
                     </form>
                 </section>
 
+                <section class="content-panel manage-members-panel" id="manage-members-panel" role="tabpanel" aria-labelledby="manage-members-tab" hidden>
+                    <div class="admin-panel">
+                        <div class="panel-heading compact">
+                            <div><h3>Team Members</h3><p class="field-help">Select a member to update only Status and Time.</p></div>
+                            <span class="status-badge" id="member-count-badge" data-state="ready">0 members</span>
+                        </div>
+                        <div class="member-management-lists">
+                            <section aria-labelledby="current-members-title">
+                                <h4 id="current-members-title">Current</h4>
+                                <div class="member-management-list" id="current-members-list"></div>
+                            </section>
+                            <section aria-labelledby="former-members-title">
+                                <h4 id="former-members-title">Former <span id="former-member-count">0</span></h4>
+                                <div class="member-management-list" id="former-members-list"></div>
+                            </section>
+                        </div>
+                    </div>
+
+                    <form class="admin-panel member-status-editor" id="member-status-form" hidden novalidate>
+                        <div class="panel-heading compact"><h3>Member Status</h3></div>
+                        <div class="member-status-profile">
+                            <img id="managed-member-image" alt="">
+                            <div>
+                                <h4 id="managed-member-name"></h4>
+                                <p class="preview-group" id="managed-member-group"></p>
+                                <p id="managed-member-institution"></p>
+                                <p id="managed-member-research"></p>
+                                <p id="managed-member-email"></p>
+                                <div class="member-preview-links" id="managed-member-links"></div>
+                            </div>
+                        </div>
+                        <fieldset class="status-choice">
+                            <legend>Status</legend>
+                            <label><input type="radio" name="managed-member-status" value="current"> Current</label>
+                            <label><input type="radio" name="managed-member-status" value="former"> Former</label>
+                        </fieldset>
+                        <div class="field">
+                            <label for="managed-member-time">Time</label>
+                            <input id="managed-member-time" type="text" maxlength="300">
+                        </div>
+                        <div class="form-errors" id="member-status-errors" role="alert" hidden></div>
+                        <div class="form-actions">
+                            <button class="button button-primary" type="submit">Validate &amp; Preview</button>
+                            <button class="button button-secondary" id="member-status-cancel" type="button">Cancel</button>
+                        </div>
+                    </form>
+                </section>
+
                 <section class="admin-panel review-panel" id="review-panel" hidden aria-labelledby="review-title">
                     <div class="panel-heading">
                         <div><p class="panel-index">Prepared locally</p><h2 id="review-title">Update Preview</h2></div>
@@ -284,7 +333,7 @@
                     </dl>
                     <label class="prepared-label" for="prepared-output">Prepared data entry</label>
                     <pre class="prepared-output" id="prepared-output" tabindex="0"></pre>
-                    <p class="security-note">Previewing keeps the prepared data entry and website preview on this page for review. It does not upload the image, modify website files, call GitHub, or publish content.</p>
+                    <p class="security-note">Previewing keeps the prepared update on this page for review. Publishing requires a separate confirmation and targets only the Preview website.</p>
                     <div class="status-message" id="submit-status" role="status" aria-live="polite"></div>
                     <button class="button button-primary" id="preview-update-button" type="button">Preview Update</button>
                 </section>
@@ -292,7 +341,14 @@
                 <section class="admin-panel success-panel" id="success-panel" hidden aria-labelledby="success-title">
                     <p class="panel-index">Preview ready</p>
                     <h2 id="success-title">Update preview ready.</h2>
-                    <p>Review how this content would appear on the website. No website files or remote content have been changed.</p>
+                    <p id="success-message">Review how this content would appear on the website. No website files or remote content have been changed.</p>
+                    <p class="commit-reference" id="commit-reference" hidden></p>
+                    <div class="form-actions publish-actions">
+                        <button class="button button-primary" id="publish-update-button" type="button">Publish Update</button>
+                        <a class="button button-secondary" id="view-website-link" href="https://chenyinuo-enoch.github.io/flying-intelligence-preview/" target="_blank" rel="noopener noreferrer" hidden>View Website</a>
+                        <button class="button button-secondary" id="rollback-update-button" type="button" hidden>Roll Back Last Update</button>
+                    </div>
+                    <div class="status-message" id="publish-status" role="status" aria-live="polite"></div>
                 </section>
                     </section>
                 </div>
@@ -338,10 +394,10 @@
     <script src="../js/jquery.mb.YTPlayer.min.js"></script>
     <script src="../js/main.js"></script>
     <script src="../js/interactive-airspace.js?v=20260804-latest2"></script>
-    <script src="firebase-config.js?v=20260814-1"></script>
-    <script src="simple-auth-config.js?v=20260817-final-1"></script>
-    <script src="simple-auth.js?v=20260817-final-1"></script>
-    <script src="admin.js?v=20260817-preview-1"></script>
+    <script src="../data/members.js?v=20260818-status-1"></script>
+    <script src="admin-api-config.js?v=20260818-secure-1"></script>
+    <script src="admin-api.js?v=20260818-secure-1"></script>
+    <script src="admin.js?v=20260818-secure-1"></script>
 </body>
 
 </html>

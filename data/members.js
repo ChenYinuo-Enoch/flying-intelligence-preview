@@ -3,6 +3,7 @@ const members = [
     {
         id: "yonglin-tian",
         type: "advisor",
+        status: "current",
         name: "Yonglin Tian",
         image: "../groups/Yonglin Tian.jpg",
         alt: "Yonglin Tian",
@@ -18,6 +19,7 @@ const members = [
     {
         id: "jianli-sun",
         type: "member",
+        status: "current",
         year: 2025,
         name: "Jianli Sun",
         image: "../groups/Jianli Sun.png",
@@ -32,6 +34,7 @@ const members = [
     {
         id: "xinyuan-zhang",
         type: "member",
+        status: "current",
         year: 2025,
         name: "Xinyuan Zhang",
         image: "../groups/Xinyuan Zhang.jpg",
@@ -46,6 +49,7 @@ const members = [
     {
         id: "qiyao-zhang",
         type: "member",
+        status: "current",
         year: 2025,
         name: "Qiyao Zhang",
         image: "../groups/Qiyao Zhang.jpg",
@@ -62,6 +66,7 @@ const members = [
     {
         id: "xianke-wu",
         type: "member",
+        status: "current",
         year: 2025,
         name: "Xianke Wu",
         image: "../groups/Xianke Wu.jpg",
@@ -78,6 +83,7 @@ const members = [
     {
         id: "yihao-wu",
         type: "member",
+        status: "current",
         year: 2025,
         name: "Yihao Wu",
         image: "../groups/Yihao Wu.jpg",
@@ -92,6 +98,7 @@ const members = [
     {
         id: "xinyi-li",
         type: "member",
+        status: "current",
         year: 2025,
         name: "Xinyi Li",
         image: "../groups/Xinyi Li.jpg",
@@ -106,6 +113,7 @@ const members = [
     {
         id: "wenjin-peng",
         type: "member",
+        status: "current",
         year: 2025,
         name: "Wenjin Peng",
         image: "../groups/Wenjin Peng.jpg",
@@ -120,6 +128,7 @@ const members = [
     {
         id: "xinyu-liu",
         type: "member",
+        status: "current",
         year: 2025,
         name: "Xinyu Liu",
         image: "../groups/Xinyu Liu.jpg",
@@ -134,6 +143,7 @@ const members = [
     {
         id: "zihan-song",
         type: "member",
+        status: "current",
         year: 2025,
         name: "Zihan Song",
         image: "../groups/Zihan Song.jpg",
@@ -148,6 +158,7 @@ const members = [
     {
         id: "chengxiang-li",
         type: "member",
+        status: "current",
         year: 2025,
         name: "Chengxiang Li",
         image: "../groups/Chengxiang Li.jpg",
@@ -162,6 +173,7 @@ const members = [
     {
         id: "houhua-lu",
         type: "member",
+        status: "current",
         year: 2026,
         name: "Houhua Lu",
         image: "../groups/Houhua Lu.jpg",
@@ -176,6 +188,7 @@ const members = [
     {
         id: "jiarui-wang",
         type: "member",
+        status: "current",
         year: 2026,
         name: "Jiarui Wang",
         image: "../groups/Jiarui Wang.jpg",

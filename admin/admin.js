@@ -1,11 +1,22 @@
 (function () {
     'use strict';
 
-    const SESSION_KEY = 'adminUnlocked';
     const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
     const IMAGE_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp']);
-    const authSettings = window.FLYING_INTELLIGENCE_SIMPLE_AUTH || {};
-    const authApi = window.FLYING_INTELLIGENCE_SIMPLE_AUTH_API;
+    const apiConfig = window.FLYING_INTELLIGENCE_ADMIN_API_CONFIG || {};
+    const apiFactory = window.FLYING_INTELLIGENCE_ADMIN_API_FACTORY;
+    let adminApi = null;
+    try {
+        if (apiFactory) {
+            adminApi = apiFactory.createAdminApi({
+                baseUrl: apiConfig.baseUrl,
+                storage: window.sessionStorage,
+                fetch: window.fetch.bind(window)
+            });
+        }
+    } catch (error) {
+        adminApi = null;
+    }
 
     const elements = {
         signInForm: document.getElementById('sign-in-form'),
@@ -19,8 +30,10 @@
         workspace: document.getElementById('admin-workspace'),
         publicationTab: document.getElementById('publication-tab'),
         memberTab: document.getElementById('member-tab'),
+        manageMembersTab: document.getElementById('manage-members-tab'),
         publicationPanel: document.getElementById('publication-panel'),
         memberPanel: document.getElementById('member-panel'),
+        manageMembersPanel: document.getElementById('manage-members-panel'),
         publicationForm: document.getElementById('publication-form'),
         memberForm: document.getElementById('member-form'),
         publicationErrors: document.getElementById('publication-errors'),
@@ -55,6 +68,28 @@
         previewUpdate: document.getElementById('preview-update-button'),
         submitStatus: document.getElementById('submit-status'),
         successPanel: document.getElementById('success-panel')
+        ,currentMembersList: document.getElementById('current-members-list')
+        ,formerMembersList: document.getElementById('former-members-list')
+        ,formerMemberCount: document.getElementById('former-member-count')
+        ,memberCountBadge: document.getElementById('member-count-badge')
+        ,memberStatusForm: document.getElementById('member-status-form')
+        ,managedMemberImage: document.getElementById('managed-member-image')
+        ,managedMemberName: document.getElementById('managed-member-name')
+        ,managedMemberGroup: document.getElementById('managed-member-group')
+        ,managedMemberInstitution: document.getElementById('managed-member-institution')
+        ,managedMemberResearch: document.getElementById('managed-member-research')
+        ,managedMemberEmail: document.getElementById('managed-member-email')
+        ,managedMemberLinks: document.getElementById('managed-member-links')
+        ,managedMemberTime: document.getElementById('managed-member-time')
+        ,memberStatusErrors: document.getElementById('member-status-errors')
+        ,memberStatusCancel: document.getElementById('member-status-cancel')
+        ,publishUpdate: document.getElementById('publish-update-button')
+        ,rollbackUpdate: document.getElementById('rollback-update-button')
+        ,viewWebsite: document.getElementById('view-website-link')
+        ,successTitle: document.getElementById('success-title')
+        ,successMessage: document.getElementById('success-message')
+        ,commitReference: document.getElementById('commit-reference')
+        ,publishStatus: document.getElementById('publish-status')
     };
 
     const state = {
@@ -63,7 +98,11 @@
         publicationRecords: [],
         memberRecords: [],
         imagePaths: new Set(),
-        previewUrls: { publication: '', member: '' }
+        previewUrls: { publication: '', member: '' },
+        baseCommitSha: '',
+        rollback: { available: false, commitSha: null },
+        selectedMember: null,
+        publishing: false
     };
 
     function setStatus(element, message, status) {
@@ -104,6 +143,9 @@
         state.publicationRecords = [];
         state.memberRecords = [];
         state.imagePaths = new Set();
+        state.baseCommitSha = '';
+        state.rollback = { available: false, commitSha: null };
+        state.selectedMember = null;
         elements.workspace.hidden = true;
         elements.reviewPanel.hidden = true;
         elements.successPanel.hidden = true;
@@ -114,9 +156,9 @@
         elements.signInForm.hidden = false;
         elements.signedInRow.hidden = true;
         elements.password.value = '';
-        elements.signIn.disabled = !authApi || !authApi.isConfigured(authSettings);
+        elements.signIn.disabled = !adminApi;
         setConnectionState('Signed out', 'idle');
-        setStatus(elements.authStatus, message || 'Enter the configured local administrator credentials.', message ? 'error' : '');
+        setStatus(elements.authStatus, message || 'Enter your Preview administrator credentials.', message ? 'error' : '');
     }
 
     function renderAuthorized() {
@@ -125,58 +167,57 @@
         elements.signedInRow.hidden = false;
         elements.signIn.disabled = false;
         setConnectionState('Authorized', 'connected');
-        setStatus(elements.authStatus, 'Local administrator access unlocked for this browser tab.', 'success');
-    }
-
-    function sessionUnlocked() {
-        try { return window.sessionStorage.getItem(SESSION_KEY) === 'true'; }
-        catch (error) { return false; }
-    }
-
-    function setSessionUnlocked(unlocked) {
-        try {
-            if (unlocked) window.sessionStorage.setItem(SESSION_KEY, 'true');
-            else window.sessionStorage.removeItem(SESSION_KEY);
-            return true;
-        } catch (error) {
-            return false;
-        }
+        setStatus(elements.authStatus, 'Secure administrator session active for this browser tab.', 'success');
     }
 
     async function loadContentSnapshot() {
         const responses = await Promise.all([
             fetch('../papers-data.js', { cache: 'no-store' }),
-            fetch('../data/members.js', { cache: 'no-store' })
+            fetch('../data/members.js', { cache: 'no-store' }),
+            adminApi.getState()
         ]);
         if (!responses[0].ok || !responses[1].ok) throw new Error('snapshot-unavailable');
         const papersSource = await responses[0].text();
         const membersSource = await responses[1].text();
         state.publicationRecords = parsePublicationRecords(papersSource);
-        state.memberRecords = parseMemberRecords(membersSource);
+        const remoteMembers = new Map((responses[2].members || []).map(function (member) { return [member.id, member]; }));
+        const localMembers = typeof members !== 'undefined' && Array.isArray(members) ? members : parseMemberRecords(membersSource);
+        state.memberRecords = localMembers.map(function (member) {
+            const remote = remoteMembers.get(member.id) || {};
+            return Object.assign({}, member, {
+                status: remote.status || member.status || 'current',
+                time: typeof remote.time === 'string' ? remote.time : member.time
+            });
+        });
         state.imagePaths = new Set(state.publicationRecords.map(function (record) { return record.img; })
             .concat(state.memberRecords.map(function (record) { return record.image; })).filter(Boolean));
+        state.baseCommitSha = responses[2].mainSha;
+        state.rollback = responses[2].rollback || { available: false, commitSha: null };
         populateDirections(papersSource);
+        renderMemberLists();
+        updateRollbackAvailability();
     }
 
     async function initializeAuthentication() {
-        if (!authApi || !authApi.isConfigured(authSettings)) {
+        if (!adminApi) {
             elements.signIn.disabled = true;
             setConnectionState('Setup required', 'idle');
-            setStatus(elements.authStatus, 'Administrator credentials have not been configured yet.', 'error');
+            setStatus(elements.authStatus, 'Administrator service has not been configured yet.', 'error');
             return;
         }
 
         elements.signIn.disabled = false;
-        if (!sessionUnlocked()) {
+        if (!adminApi.hasSession()) {
             renderSignedOut();
             return;
         }
         try {
+            await adminApi.status();
             await loadContentSnapshot();
             renderAuthorized();
             elements.workspace.hidden = false;
         } catch (error) {
-            setSessionUnlocked(false);
+            adminApi.logout();
             renderSignedOut('Unable to load the current website data.');
         }
     }
@@ -192,15 +233,14 @@
 
         elements.signIn.disabled = true;
         setConnectionState('Signing in', 'loading');
-        setStatus(elements.authStatus, 'Checking local credentials.', '');
+        setStatus(elements.authStatus, 'Checking secure credentials.', '');
         try {
-            const valid = await authApi.verifyCredentials(authSettings, account, password);
-            if (!valid || !setSessionUnlocked(true)) throw new Error('invalid-credentials');
+            await adminApi.login(account, password);
             await loadContentSnapshot();
             renderAuthorized();
             elements.workspace.hidden = false;
         } catch (error) {
-            setSessionUnlocked(false);
+            adminApi.logout();
             renderSignedOut('Unable to sign in with this account.');
         } finally {
             elements.password.value = '';
@@ -210,7 +250,7 @@
 
     async function signOut() {
         resetProtectedState();
-        setSessionUnlocked(false);
+        if (adminApi) adminApi.logout();
         renderSignedOut();
     }
 
@@ -243,9 +283,104 @@
         blocks.forEach(function (block) {
             const id = parseQuotedValue(block, 'id');
             const name = parseQuotedValue(block, 'name');
-            if (id && name) records.push({ id: id, name: name, image: parseQuotedValue(block, 'image') });
+            if (id && name) records.push({
+                id: id,
+                name: name,
+                image: parseQuotedValue(block, 'image'),
+                type: parseQuotedValue(block, 'type'),
+                status: parseQuotedValue(block, 'status') || 'current',
+                time: parseQuotedValue(block, 'time')
+            });
         });
         return records;
+    }
+
+    function memberGroup(member) {
+        return member.type === 'advisor' ? 'TEAM ADVISOR' : String(member.year || '');
+    }
+
+    function renderMemberLinks(container, member) {
+        container.replaceChildren();
+        const links = [];
+        if (member.profileUrl) links.push({ label: 'Personal page', url: member.profileUrl });
+        if (Array.isArray(member.links)) links.push.apply(links, member.links);
+        links.forEach(function (link) {
+            if (!link || !link.url) return;
+            const anchor = document.createElement('a');
+            anchor.href = link.url;
+            anchor.textContent = link.label || 'External link';
+            if (/^https?:/i.test(link.url)) {
+                anchor.target = '_blank';
+                anchor.rel = 'noopener noreferrer';
+            }
+            container.appendChild(anchor);
+        });
+    }
+
+    function memberListButton(member) {
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = 'member-management-item';
+        button.dataset.memberId = member.id;
+        const copy = document.createElement('span');
+        const name = document.createElement('span');
+        name.className = 'member-management-name';
+        name.textContent = member.name;
+        const meta = document.createElement('span');
+        meta.className = 'member-management-meta';
+        meta.textContent = memberGroup(member);
+        copy.append(name, meta);
+        const status = document.createElement('span');
+        status.className = 'status-badge';
+        status.dataset.state = member.status === 'former' ? 'idle' : 'ready';
+        status.textContent = member.status === 'former' ? 'Former' : 'Current';
+        button.append(copy, status);
+        button.addEventListener('click', function () { openMemberStatus(member.id); });
+        return button;
+    }
+
+    function renderMemberLists() {
+        elements.currentMembersList.replaceChildren();
+        elements.formerMembersList.replaceChildren();
+        const current = state.memberRecords.filter(function (member) { return member.status !== 'former'; });
+        const former = state.memberRecords.filter(function (member) { return member.status === 'former'; });
+        current.forEach(function (member) { elements.currentMembersList.appendChild(memberListButton(member)); });
+        former.forEach(function (member) { elements.formerMembersList.appendChild(memberListButton(member)); });
+        if (!former.length) {
+            const empty = document.createElement('p');
+            empty.className = 'field-help';
+            empty.textContent = 'Former 0';
+            elements.formerMembersList.appendChild(empty);
+        }
+        elements.formerMemberCount.textContent = String(former.length);
+        elements.memberCountBadge.textContent = `${state.memberRecords.length} members`;
+    }
+
+    function openMemberStatus(id) {
+        const member = state.memberRecords.find(function (record) { return record.id === id; });
+        if (!member) return;
+        state.selectedMember = member;
+        elements.managedMemberImage.src = member.image;
+        elements.managedMemberImage.alt = member.alt || member.name;
+        elements.managedMemberName.textContent = member.name;
+        elements.managedMemberGroup.textContent = memberGroup(member);
+        elements.managedMemberInstitution.textContent = member.institution || '';
+        elements.managedMemberResearch.textContent = member.research || '';
+        elements.managedMemberEmail.textContent = member.email || '';
+        renderMemberLinks(elements.managedMemberLinks, member);
+        elements.managedMemberTime.value = member.time || '';
+        const radio = elements.memberStatusForm.querySelector(`input[name="managed-member-status"][value="${member.status || 'current'}"]`);
+        if (radio) radio.checked = true;
+        showErrors(elements.memberStatusErrors, []);
+        elements.memberStatusForm.hidden = false;
+        elements.memberStatusForm.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+
+    function closeMemberStatus() {
+        state.selectedMember = null;
+        elements.memberStatusForm.hidden = true;
+        showErrors(elements.memberStatusErrors, []);
+        invalidateReview('member-status');
     }
 
     function parseResearchDirections(source) {
@@ -470,7 +605,8 @@
         const lines = [
             '    {',
             `        id: ${JSON.stringify(draft.id)},`,
-            `        type: ${JSON.stringify(draft.type)},`
+            `        type: ${JSON.stringify(draft.type)},`,
+            '        status: "current",'
         ];
         if (draft.type === 'member') lines.push(`        year: ${draft.year},`);
         lines.push(`        name: ${JSON.stringify(draft.name)},`);
@@ -511,15 +647,25 @@
     }
 
     function prepareReview(kind, draft) {
-        const prepared = buildPreparedUpdate(kind, draft);
+        const prepared = kind === 'member-status' ? {
+            dataPath: 'data/members.js',
+            imagePath: '',
+            imageSummary: 'No image change',
+            entry: `${draft.name}\n${memberGroup(draft.member)} → ${draft.status === 'former' ? 'FORMER MEMBERS' : memberGroup(draft.member)}\nTime: ${draft.time}`
+        } : buildPreparedUpdate(kind, draft);
         state.review = { kind: kind, draft: draft, prepared: prepared };
-        elements.reviewType.textContent = kind === 'publication' ? 'Publication' : 'Member';
+        elements.reviewType.textContent = kind === 'publication' ? 'Publication' : (kind === 'member-status' ? 'Member Status' : 'Member');
         elements.reviewName.textContent = kind === 'publication' ? draft.title : draft.name;
         elements.reviewTarget.textContent = prepared.dataPath;
         elements.reviewImage.textContent = prepared.imageSummary;
         elements.preparedOutput.textContent = prepared.entry;
         elements.reviewPanel.hidden = false;
         elements.successPanel.hidden = true;
+        elements.publishUpdate.hidden = false;
+        elements.publishUpdate.disabled = false;
+        elements.rollbackUpdate.hidden = true;
+        elements.viewWebsite.hidden = true;
+        elements.commitReference.hidden = true;
         elements.previewUpdate.disabled = false;
         setStatus(elements.submitStatus, '', '');
         elements.reviewPanel.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -536,16 +682,29 @@
         if (!state.authorized || !state.review) return;
         elements.successPanel.hidden = false;
         setStatus(elements.submitStatus, 'Preview ready. No website files or remote content have been changed.', 'success');
+        elements.successTitle.textContent = 'Update preview ready.';
+        elements.successMessage.textContent = 'Review how this content would appear on the website. No website files or remote content have been changed.';
+        elements.publishUpdate.hidden = false;
+        elements.publishUpdate.disabled = false;
+        elements.rollbackUpdate.hidden = true;
+        elements.viewWebsite.hidden = true;
+        elements.commitReference.hidden = true;
+        setStatus(elements.publishStatus, '', '');
         elements.successPanel.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
 
     function activateTab(kind) {
         invalidateReview();
         const publication = kind === 'publication';
+        const member = kind === 'member';
+        const manage = kind === 'manage-members';
         elements.publicationTab.setAttribute('aria-selected', String(publication));
-        elements.memberTab.setAttribute('aria-selected', String(!publication));
+        elements.memberTab.setAttribute('aria-selected', String(member));
+        elements.manageMembersTab.setAttribute('aria-selected', String(manage));
         elements.publicationPanel.hidden = !publication;
-        elements.memberPanel.hidden = publication;
+        elements.memberPanel.hidden = !member;
+        elements.manageMembersPanel.hidden = !manage;
+        if (!manage) closeMemberStatus();
     }
 
     function updateMemberType() {
@@ -557,10 +716,136 @@
         invalidateReview('member');
     }
 
+    function fileImagePayload(file) {
+        return new Promise(function (resolve, reject) {
+            const reader = new FileReader();
+            reader.addEventListener('load', function () {
+                const value = String(reader.result || '');
+                const separator = value.indexOf(',');
+                if (separator < 0) {
+                    reject(new Error('Unable to read the selected image.'));
+                    return;
+                }
+                resolve({
+                    name: file.name,
+                    type: file.type,
+                    size: file.size,
+                    base64: value.slice(separator + 1)
+                });
+            });
+            reader.addEventListener('error', function () { reject(new Error('Unable to read the selected image.')); });
+            reader.readAsDataURL(file);
+        });
+    }
+
+    async function buildPublishOperation() {
+        if (!state.review || !state.baseCommitSha) throw new Error('Refresh and preview this update again.');
+        if (state.review.kind === 'member-status') {
+            return {
+                baseCommitSha: state.baseCommitSha,
+                kind: 'member-status',
+                update: {
+                    id: state.review.draft.id,
+                    status: state.review.draft.status,
+                    time: state.review.draft.time
+                }
+            };
+        }
+        const draft = Object.assign({}, state.review.draft);
+        const imageFile = draft.imageFile;
+        delete draft.imageFile;
+        delete draft.id;
+        return {
+            baseCommitSha: state.baseCommitSha,
+            kind: state.review.kind,
+            draft: draft,
+            image: await fileImagePayload(imageFile)
+        };
+    }
+
+    function updateRollbackAvailability() {
+        const available = Boolean(state.rollback && state.rollback.available && state.rollback.commitSha === state.baseCommitSha);
+        elements.rollbackUpdate.hidden = !available;
+        if (available && !state.review) {
+            elements.successPanel.hidden = false;
+            elements.successTitle.textContent = 'Latest Admin update';
+            elements.successMessage.textContent = 'The current Preview main commit can be rolled back safely.';
+            elements.publishUpdate.hidden = true;
+            elements.viewWebsite.hidden = false;
+            elements.commitReference.hidden = false;
+            elements.commitReference.textContent = `Commit ${state.baseCommitSha.slice(0, 7)}`;
+        }
+    }
+
+    async function publishUpdate() {
+        if (!state.authorized || !state.review || state.publishing) return;
+        const confirmed = window.confirm('Publish this update?\n\nThis will update the live preview website.');
+        if (!confirmed) return;
+        if (!apiConfig.allowWrites) {
+            setStatus(elements.publishStatus, 'Publish confirmation verified. Remote writes are disabled during local verification.', 'success');
+            return;
+        }
+        state.publishing = true;
+        elements.publishUpdate.disabled = true;
+        elements.successTitle.textContent = 'PUBLISHING';
+        setStatus(elements.publishStatus, 'Publishing update…', '');
+        try {
+            const result = await adminApi.publish(await buildPublishOperation());
+            state.baseCommitSha = result.commitSha;
+            state.rollback = { available: true, commitSha: result.commitSha };
+            elements.successTitle.textContent = 'PUBLISHED';
+            elements.successMessage.textContent = 'Website update published to the preview site.';
+            elements.commitReference.textContent = `Commit ${result.commitSha.slice(0, 7)}`;
+            elements.commitReference.hidden = false;
+            elements.viewWebsite.hidden = false;
+            elements.rollbackUpdate.hidden = false;
+            elements.publishUpdate.hidden = true;
+            setStatus(elements.publishStatus, 'Published to main. GitHub Pages is updating.', 'success');
+        } catch (error) {
+            elements.successTitle.textContent = 'Publish failed';
+            setStatus(elements.publishStatus, error.message || 'Unable to publish this update.', 'error');
+            elements.publishUpdate.disabled = false;
+        } finally {
+            state.publishing = false;
+        }
+    }
+
+    async function rollbackUpdate() {
+        if (!state.authorized || state.publishing || !state.rollback.available) return;
+        const confirmed = window.confirm('Roll back this update?\n\nThis creates a new commit that restores the website to the state before this Admin update.');
+        if (!confirmed) return;
+        if (!apiConfig.allowWrites) {
+            setStatus(elements.publishStatus, 'Rollback confirmation verified. Remote writes are disabled during local verification.', 'success');
+            return;
+        }
+        state.publishing = true;
+        elements.rollbackUpdate.disabled = true;
+        setStatus(elements.publishStatus, 'Rolling back the last Admin update…', '');
+        try {
+            const result = await adminApi.rollback({ baseCommitSha: state.baseCommitSha });
+            state.baseCommitSha = result.commitSha;
+            state.rollback = { available: false, commitSha: null };
+            elements.successTitle.textContent = 'ROLLED BACK';
+            elements.successMessage.textContent = 'The last Admin update has been rolled back.';
+            elements.commitReference.textContent = `Commit ${result.commitSha.slice(0, 7)}`;
+            elements.commitReference.hidden = false;
+            elements.viewWebsite.hidden = false;
+            elements.rollbackUpdate.hidden = true;
+            elements.publishUpdate.hidden = true;
+            setStatus(elements.publishStatus, 'GitHub Pages is updating.', 'success');
+        } catch (error) {
+            setStatus(elements.publishStatus, error.message || 'Unable to roll back this update.', 'error');
+            elements.rollbackUpdate.disabled = false;
+        } finally {
+            state.publishing = false;
+        }
+    }
+
     elements.signInForm.addEventListener('submit', signIn);
     elements.signOut.addEventListener('click', signOut);
     elements.publicationTab.addEventListener('click', function () { activateTab('publication'); });
     elements.memberTab.addEventListener('click', function () { activateTab('member'); });
+    elements.manageMembersTab.addEventListener('click', function () { activateTab('manage-members'); });
     elements.memberType.addEventListener('change', updateMemberType);
 
     elements.publicationForm.addEventListener('submit', function (event) {
@@ -581,8 +866,33 @@
         prepareReview('member', result.draft);
     });
 
+    elements.memberStatusForm.addEventListener('submit', function (event) {
+        event.preventDefault();
+        if (!state.selectedMember) return;
+        const statusInput = elements.memberStatusForm.querySelector('input[name="managed-member-status"]:checked');
+        const status = statusInput ? statusInput.value : '';
+        const time = elements.managedMemberTime.value;
+        const errors = [];
+        if (status !== 'current' && status !== 'former') errors.push('Select Current or Former.');
+        if (time.length > 300) errors.push('Time text is too long.');
+        if (status === 'former' && /present/i.test(time)) {
+            errors.push('This member is marked Former, but the Time field still contains “present”. Update the Time field before publishing.');
+        }
+        if (status === state.selectedMember.status && time === state.selectedMember.time) errors.push('No Status or Time change has been made.');
+        showErrors(elements.memberStatusErrors, errors);
+        if (errors.length) return;
+        prepareReview('member-status', {
+            id: state.selectedMember.id,
+            name: state.selectedMember.name,
+            status: status,
+            time: time,
+            member: state.selectedMember
+        });
+    });
+
     elements.publicationForm.addEventListener('input', function () { invalidateReview('publication'); });
     elements.memberForm.addEventListener('input', function () { invalidateReview('member'); });
+    elements.memberStatusForm.addEventListener('input', function () { invalidateReview('member-status'); });
     elements.publicationForm.addEventListener('reset', function () {
         window.setTimeout(function () {
             clearPreviewUrl('publication');
@@ -603,6 +913,9 @@
         }, 0);
     });
     elements.previewUpdate.addEventListener('click', previewUpdate);
+    elements.publishUpdate.addEventListener('click', publishUpdate);
+    elements.rollbackUpdate.addEventListener('click', rollbackUpdate);
+    elements.memberStatusCancel.addEventListener('click', closeMemberStatus);
 
     window.addEventListener('pagehide', function () {
         elements.password.value = '';

@@ -4,3 +4,9 @@ firebase-debug.log*
 functions/node_modules/
 functions/.env
 functions/.env.*
+admin-worker/node_modules/
+admin-worker/.wrangler/
+admin-worker/.dev.vars
+admin-worker/.env
+admin-worker/.env.*
+admin-worker/coverage/

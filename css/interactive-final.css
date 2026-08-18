@@ -888,6 +888,20 @@ body.person-page > .container > .section-title:first-of-type h2,
   color: var(--color-accent-ink) !important;
 }
 
+.group-page .former-members-section {
+  border-top: 1px solid rgba(15, 43, 61, 0.14);
+  padding-top: clamp(32px, 5vw, 56px);
+}
+
+.group-page .former-members-section .group-section-heading::before {
+  background: rgba(224, 107, 62, 0.45);
+}
+
+.group-page .former-members-section .member-card .card {
+  border-color: rgba(15, 43, 61, 0.18);
+  box-shadow: 0 14px 36px rgba(15, 43, 61, 0.07);
+}
+
 /* Resource, research, direction and profile pages */
 .resource-page .trend-entry,
 .research-page .trend-entry,

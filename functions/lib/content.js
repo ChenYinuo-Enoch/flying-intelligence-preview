@@ -21,6 +21,14 @@ function requiredString(value, field, maxLength, allowEmpty) {
     return result;
 }
 
+function plainString(value, field, maxLength, allowEmpty) {
+    const result = requiredString(value, field, maxLength, allowEmpty);
+    if (/[<>]/.test(result) || /(?:javascript\s*:|on[a-z]+\s*=)/i.test(result)) {
+        throw invalid(`${field} contains unsupported markup.`);
+    }
+    return result;
+}
+
 function safeHttpUrl(value) {
     try {
         const url = new URL(value);
@@ -60,7 +68,7 @@ function splitAndValidateTags(value) {
         throw invalid('Research directions are required.');
     }
     const tags = Array.from(new Set(value.map(function (tag) {
-        return requiredString(tag, 'Research direction', 100, false);
+        return plainString(tag, 'Research direction', 100, false);
     })));
     if (!tags.length) throw invalid('Research directions are required.');
     return tags;
@@ -69,13 +77,13 @@ function splitAndValidateTags(value) {
 function validatePublicationDraft(input) {
     const draft = input && typeof input === 'object' ? input : {};
     const result = {
-        title: requiredString(draft.title, 'Publication title', 500, false),
+        title: plainString(draft.title, 'Publication title', 500, false),
         authors: validateAuthorMarkup(draft.authors),
-        date: requiredString(draft.date, 'Published date', 80, false),
-        venue: requiredString(draft.venue, 'Venue', 200, false),
+        date: plainString(draft.date, 'Published date', 80, false),
+        venue: plainString(draft.venue, 'Venue', 200, false),
         url: requiredString(draft.url, 'Paper or project URL', 2048, false),
         tags: splitAndValidateTags(draft.tags),
-        coverPosition: requiredString(draft.coverPosition || '50% 50%', 'Cover position', 60, false),
+        coverPosition: plainString(draft.coverPosition || '50% 50%', 'Cover position', 60, false),
         mediaFitMode: requiredString(draft.mediaFitMode || 'contain', 'Image fit', 12, false),
         video: requiredString(draft.video || '', 'Video', 2048, true)
     };
@@ -87,7 +95,7 @@ function validatePublicationDraft(input) {
 
 function validateMemberDraft(input) {
     const draft = input && typeof input === 'object' ? input : {};
-    const name = requiredString(draft.name, 'Member name', 200, false);
+    const name = plainString(draft.name, 'Member name', 200, false);
     const type = requiredString(draft.type, 'Member type', 20, false);
     if (!['member', 'advisor'].includes(type)) throw invalid('Member type is invalid.');
     const year = type === 'member' ? Number(draft.year) : null;
@@ -103,13 +111,30 @@ function validateMemberDraft(input) {
         type: type,
         year: year,
         name: name,
-        time: requiredString(draft.time || '', 'Time text', 300, true),
-        institution: requiredString(draft.institution, 'Institution', 1000, false),
-        research: requiredString(draft.research, 'Research description', 1600, false),
-        email: requiredString(draft.email, 'Email display text', 300, false),
+        time: plainString(draft.time || '', 'Time text', 300, true),
+        institution: plainString(draft.institution, 'Institution', 1000, false),
+        research: plainString(draft.research, 'Research description', 1600, false),
+        email: plainString(draft.email, 'Email display text', 300, false),
         profileUrl: profileUrl,
         scholarUrl: scholarUrl
     };
+}
+
+function validateMemberStatusUpdate(input) {
+    const update = input && typeof input === 'object' ? input : {};
+    const id = requiredString(update.id, 'Member id', 100, false);
+    const status = requiredString(update.status, 'Member status', 20, false);
+    if (!['current', 'former'].includes(status)) throw invalid('Member status is invalid.');
+    if (typeof update.time !== 'string') throw invalid('Time text must be text.');
+    if (update.time.length > 300) throw invalid('Time text is too long.');
+    if (/[<>]/.test(update.time) || /(?:javascript\s*:|on[a-z]+\s*=)/i.test(update.time)) {
+        throw invalid('Time text contains unsupported markup.');
+    }
+    const time = update.time;
+    if (status === 'former' && /present/i.test(time)) {
+        throw invalid('Remove “present” from the time text before moving this member to Former Members.');
+    }
+    return { id: id, status: status, time: time };
 }
 
 function extensionForImage(fileName, mimeType) {
@@ -181,9 +206,34 @@ function parseMemberRecords(source) {
     blocks.forEach(function (block) {
         const id = parseQuotedValue(block, 'id');
         const name = parseQuotedValue(block, 'name');
-        if (id && name) records.push({ id: id, name: name });
+        if (id && name) records.push({
+            id: id,
+            name: name,
+            status: parseQuotedValue(block, 'status') || 'current',
+            time: parseQuotedValue(block, 'time')
+        });
     });
     return records;
+}
+
+function updateMemberRecordSource(source, input) {
+    if (typeof source !== 'string' || !/const\s+members\s*=\s*\[/.test(source)) {
+        throw invalid('members has an unexpected format.');
+    }
+    const update = validateMemberStatusUpdate(input);
+    const blocks = source.matchAll(/^\s{4}\{[\s\S]*?^\s{4}\},?/gm);
+    for (const match of blocks) {
+        const block = match[0];
+        if (parseQuotedValue(block, 'id') !== update.id) continue;
+        if (!/^\s*status:\s*["']/m.test(block) || !/^\s*time:\s*["']/m.test(block)) {
+            throw invalid('Member record is missing status or time.');
+        }
+        const nextBlock = block
+            .replace(/^(\s*status:\s*)["'](?:\\.|[^"'\\])*["']/m, `$1${JSON.stringify(update.status)}`)
+            .replace(/^(\s*time:\s*)["'](?:\\.|[^"'\\])*["']/m, `$1${JSON.stringify(update.time)}`);
+        return `${source.slice(0, match.index)}${nextBlock}${source.slice(match.index + block.length)}`;
+    }
+    throw invalid('Member record was not found.');
 }
 
 function checkPublicationDuplicate(records, draft) {
@@ -224,7 +274,8 @@ function memberEntry(draft) {
     const lines = [
         '    {',
         `        id: ${JSON.stringify(draft.id)},`,
-        `        type: ${JSON.stringify(draft.type)},`
+        `        type: ${JSON.stringify(draft.type)},`,
+        '        status: "current",'
     ];
     if (draft.type === 'member') lines.push(`        year: ${draft.year},`);
     lines.push(`        name: ${JSON.stringify(draft.name)},`);
@@ -277,5 +328,7 @@ module.exports = {
     uniquePath,
     validateImage,
     validateMemberDraft,
-    validatePublicationDraft
+    validateMemberStatusUpdate,
+    validatePublicationDraft,
+    updateMemberRecordSource
 };
