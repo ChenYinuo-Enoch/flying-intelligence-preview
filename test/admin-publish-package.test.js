@@ -45,9 +45,9 @@ test('accepts an unbound local base and rejects unsupported update types or malf
     }, /base commit/i);
 });
 
-test('builds a quoted staging command without embedding credentials', function () {
-    const command = packageApi.stagingCommand('C:\\Users\\Example User\\Downloads\\flying-admin-update-1.json');
-    assert.match(command, /^\.\\tools\\stage-admin-update\.ps1/);
-    assert.match(command, /-PackagePath "C:\\Users\\Example User\\Downloads\\flying-admin-update-1\.json"/);
+test('builds the one-command publish instruction without embedding a path or credentials', function () {
+    const command = packageApi.publishCommand();
+    assert.equal(command, '.\\Publish-Admin-Update.ps1');
+    assert.doesNotMatch(command, /PackagePath|Downloads/);
     assert.doesNotMatch(command, /token|password|secret|github_pat_|ghp_/i);
 });

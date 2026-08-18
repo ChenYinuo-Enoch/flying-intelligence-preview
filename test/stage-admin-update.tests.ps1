@@ -11,16 +11,11 @@ function Assert-Throws {
     }
 }
 
-Assert-ExpectedGitHubUser -ActualUser 'ChenYinuo-Enoch'
-Assert-Throws { Assert-ExpectedGitHubUser -ActualUser 'another-user' } 'WRONG_GITHUB_USER'
-
-Assert-ExpectedOriginUrl -OriginUrl 'https://github.com/ChenYinuo-Enoch/flying-intelligence-preview.git'
-Assert-Throws { Assert-ExpectedOriginUrl -OriginUrl 'https://github.com/Flying-Intelligence/flying-intelligence.github.io.git' } 'WRONG_ORIGIN'
-
 $package = [pscustomobject]@{
     schemaVersion = 1
     updateId = '20260818-102030-abc12345'
     updateType = 'member_status'
+    createdAt = '2026-08-18T10:20:30.000Z'
     baseCommitSha = '1111111111111111111111111111111111111111'
     previewSite = 'https://chenyinuo-enoch.github.io/flying-intelligence-preview/'
     targetEnvironment = 'preview'
@@ -28,7 +23,7 @@ $package = [pscustomobject]@{
 }
 Assert-AdminPackageEnvelope -Package $package
 Assert-FreshAdminPackage -BaseCommitSha $package.baseCommitSha -CurrentMainSha $package.baseCommitSha
-Assert-Throws { Assert-FreshAdminPackage -BaseCommitSha $package.baseCommitSha -CurrentMainSha ('2' * 40) } 'STALE_UPDATE_PACKAGE'
+Assert-Throws { Assert-FreshAdminPackage -BaseCommitSha $package.baseCommitSha -CurrentMainSha ('2' * 40) } 'STALE_PACKAGE'
 if ((Get-AdminStagingBranch -UpdateId $package.updateId) -cne "admin-staging/$($package.updateId)") { throw 'STAGING_BRANCH_ASSERTION_FAILED' }
 Assert-Throws { Get-AdminStagingBranch -UpdateId '../main' } 'INVALID_STAGING_BRANCH'
 

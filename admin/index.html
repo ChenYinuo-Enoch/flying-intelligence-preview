@@ -354,18 +354,17 @@
                         <p class="security-note">Do not include private or sensitive information. Staged publish data may be visible in this public repository.</p>
                         <ol class="publish-steps">
                             <li><strong>Step 1</strong> Download Publish Package.</li>
-                            <li><strong>Step 2</strong> Run the staging command on your computer.</li>
-                            <li><strong>Step 3</strong> Open GitHub Actions and run “Admin Publish Preview Update”.</li>
+                            <li><strong>Step 2</strong> Run the publish command on your computer.</li>
                         </ol>
                         <div class="form-actions publish-actions">
                             <a class="button button-primary" id="download-publish-package" href="#" download>Download Publish Package</a>
-                            <button class="button button-secondary" id="copy-staging-command" type="button">Copy Staging Command</button>
-                            <a class="button button-secondary" href="https://github.com/ChenYinuo-Enoch/flying-intelligence-preview/actions/workflows/admin-publish.yml" target="_blank" rel="noopener noreferrer">Instructions</a>
-                            <a class="button button-secondary" href="https://github.com/ChenYinuo-Enoch/flying-intelligence-preview/actions/workflows/admin-rollback.yml" target="_blank" rel="noopener noreferrer">Open GitHub Rollback</a>
+                            <button class="button button-secondary" id="copy-staging-command" type="button">Copy Publish Command</button>
                         </div>
-                        <label class="prepared-label" for="staging-command-output">Staging command</label>
+                        <label class="prepared-label" for="staging-command-output">Publish command</label>
                         <textarea class="staging-command-output" id="staging-command-output" rows="3" readonly></textarea>
-                        <p class="security-note"><strong>Do NOT create a Pull Request.</strong> The staging branch is used only by the Admin Publish workflow. Only GitHub users with repository write access can complete publishing.</p>
+                        <p class="security-note">The publish tool will automatically stage the update, run GitHub Actions, wait for deployment, and report the result.</p>
+                        <p class="security-note">To roll back the latest Admin update: <code>.\Rollback-Admin-Update.ps1</code></p>
+                        <p class="security-note"><strong>Do NOT create a Pull Request.</strong> Only GitHub users with repository write access can complete publishing.</p>
                     </section>
                 </section>
                     </section>
@@ -415,8 +414,8 @@
     <script src="../data/members.js?v=20260818-status-1"></script>
     <script src="simple-auth-config.js?v=20260817-final-1"></script>
     <script src="simple-auth.js?v=20260817-final-1"></script>
-    <script src="publish-package.js?v=20260818-github-only-1"></script>
-    <script src="admin.js?v=20260818-github-only-1"></script>
+    <script src="publish-package.js?v=20260818-one-command-1"></script>
+    <script src="admin.js?v=20260818-one-command-1"></script>
 </body>
 
 </html>

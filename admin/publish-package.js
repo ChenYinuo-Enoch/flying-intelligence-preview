@@ -60,9 +60,8 @@
         return `${JSON.stringify(payload, null, 2)}\n`;
     }
 
-    function stagingCommand(packagePath) {
-        const escaped = String(packagePath || '').replace(/`/g, '``').replace(/"/g, '`"');
-        return `.\\tools\\stage-admin-update.ps1 -PackagePath "${escaped}"`;
+    function publishCommand() {
+        return '.\\Publish-Admin-Update.ps1';
     }
 
     return {
@@ -71,6 +70,6 @@
         createPublishPackage: createPublishPackage,
         packageFileName: packageFileName,
         serializePublishPackage: serializePublishPackage,
-        stagingCommand: stagingCommand
+        publishCommand: publishCommand
     };
 }));

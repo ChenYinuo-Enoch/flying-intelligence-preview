@@ -8,6 +8,7 @@ const path = require('node:path');
 const root = path.resolve(__dirname, '..');
 const html = fs.readFileSync(path.join(root, 'admin', 'index.html'), 'utf8');
 const script = fs.readFileSync(path.join(root, 'admin', 'admin.js'), 'utf8');
+const publishPackage = fs.readFileSync(path.join(root, 'admin', 'publish-package.js'), 'utf8');
 
 test('Admin uses the simple convenience gate and no external backend runtime', function () {
     assert.match(html, /simple-auth-config\.js/);
@@ -23,7 +24,10 @@ test('Admin presents package preparation without claiming publication', function
     assert.match(html, /PUBLISH PACKAGE READY/);
     assert.match(html, /This update has not been published yet\./);
     assert.match(html, />Download Publish Package</);
-    assert.match(html, />Copy Staging Command</);
+    assert.match(html, />Copy Publish Command</);
+    assert.match(publishPackage, /\\Publish-Admin-Update\.ps1/);
+    assert.match(html, /\\Rollback-Admin-Update\.ps1/);
+    assert.doesNotMatch(html, /Open GitHub Actions|Open GitHub Rollback|Copy Staging Command/);
     assert.match(html, /Do not include private or sensitive information\./);
     assert.match(html, /Do NOT create a Pull Request\./);
     assert.doesNotMatch(html, />Publish Update</);

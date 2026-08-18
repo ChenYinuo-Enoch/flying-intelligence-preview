@@ -15,6 +15,13 @@ test('publish workflow is manually triggered, repository locked, staging-only, n
     const workflow = read('.github/workflows/admin-publish.yml');
     assert.match(workflow, /name:\s*Admin Publish Preview Update/);
     assert.match(workflow, /workflow_dispatch:/);
+    assert.match(workflow, /run-name:\s*Admin Publish.*inputs\.update_id/);
+    assert.match(workflow, /update_id:/);
+    assert.match(workflow, /staging_commit_sha:/);
+    assert.match(workflow, /package_id.*INPUT_UPDATE_ID|INPUT_UPDATE_ID.*package_id/s);
+    assert.match(workflow, /EXPECTED_STAGING_BRANCH:\s*admin-staging\/\$\{\{ inputs\.update_id \}\}/);
+    assert.match(workflow, /git show "\$STAGING_COMMIT_SHA:\.admin-staging\/update\.json"/);
+    assert.match(workflow, /rev-parse.*STAGING_BRANCH.*STAGING_COMMIT_SHA/s);
     assert.match(workflow, /contents:\s*write/);
     assert.match(workflow, /pages:\s*write/);
     assert.match(workflow, /id-token:\s*write/);
@@ -30,6 +37,7 @@ test('rollback workflow requires exact head and uses revert without force', func
     const workflow = read('.github/workflows/admin-rollback.yml');
     assert.match(workflow, /name:\s*Admin Rollback Last Update/);
     assert.match(workflow, /expected_head_sha/);
+    assert.match(workflow, /run-name:\s*Admin Rollback/);
     assert.match(workflow, /git revert/);
     assert.match(workflow, /admin: rollback/);
     assert.match(workflow, /actions\/deploy-pages@v4/);
@@ -46,10 +54,29 @@ test('ordinary Pages workflow deploys main and emits deployed build metadata', f
 
 test('staging helper fixes identity, origin and staging prefix without PR or force', function () {
     const helper = read('tools/stage-admin-update.ps1');
-    assert.match(helper, /ChenYinuo-Enoch/);
-    assert.match(helper, /flying-intelligence-preview/);
-    assert.match(helper, /admin-staging\//);
-    assert.match(helper, /\.admin-staging[\\/]update\.json/);
-    assert.match(helper, /Do NOT create a Pull Request\./);
-    assert.doesNotMatch(helper, /push[^\r\n]*(?:--force|force-with-lease)|upstream[^\r\n]*push/i);
+    assert.match(helper, /Publish-Admin-Update\.ps1/);
+    assert.doesNotMatch(helper, /git\s+-C|worktree|cmd(?:\.exe)?\s+\/c|push[^\r\n]*(?:--force|force-with-lease)|upstream[^\r\n]*push/i);
+});
+
+test('root automation scripts are fixed to the Preview repository and expose no target override', function () {
+    const publish = read('Publish-Admin-Update.ps1');
+    const rollback = read('Rollback-Admin-Update.ps1');
+    const common = read('tools/admin-github-common.ps1');
+    assert.match(publish, /PackagePath/);
+    assert.match(publish, /DryRun/);
+    assert.match(rollback, /DryRun/);
+    assert.match(common, /ChenYinuo-Enoch/);
+    assert.match(common, /flying-intelligence-preview/);
+    assert.match(common, /admin-staging\//);
+    assert.match(common, /gh @nativeArguments 2>&1 \| ForEach-Object \{ Write-Host/);
+    assert.match(common, /GITHUB_TOKEN_ENVIRONMENT_FORBIDDEN/);
+    assert.match(common, /auth.*status.*--active.*--hostname.*github\.com/);
+    assert.match(common, /api.*--hostname.*github\.com/);
+    assert.match(common, /github\.com\/ChenYinuo-Enoch\/flying-intelligence-preview/);
+    assert.match(common, /run.*view.*status,conclusion,url/);
+    assert.match(common, /Assert-AdminCommitParent/);
+    assert.match(publish, /watch\.Succeeded[\s\S]*COMMIT_SUCCESS_PAGES_PENDING/);
+    assert.match(rollback, /watch\.Succeeded[\s\S]*COMMIT_SUCCESS_PAGES_PENDING/);
+    assert.doesNotMatch(`${publish}\n${rollback}`, /\[(?:string|switch)\]\$(?:Owner|Repo|Branch)/i);
+    assert.doesNotMatch(`${publish}\n${rollback}\n${common}`, /cmd(?:\.exe)?\s+\/c|gh\s+auth\s+token|--force|force-with-lease|push\s+upstream/i);
 });

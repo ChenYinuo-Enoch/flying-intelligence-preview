@@ -792,13 +792,13 @@
             state.packageUrl = URL.createObjectURL(new Blob([packageApi.serializePublishPackage(payload)], { type: 'application/json' }));
             elements.downloadPackage.href = state.packageUrl;
             elements.downloadPackage.download = fileName;
-            elements.stagingCommandOutput.value = packageApi.stagingCommand(`C:\\Path\\To\\Downloads\\${fileName}`);
+            elements.stagingCommandOutput.value = packageApi.publishCommand();
             elements.packagePanel.hidden = false;
             elements.successTitle.textContent = 'PUBLISH PACKAGE READY';
             elements.successMessage.textContent = 'This update has not been published yet.';
             setStatus(elements.publishStatus, state.baseCommitSha
                 ? 'Package is bound to the deployed Preview main commit.'
-                : 'Local preview package created. The staging helper will bind it to current Preview main.', 'success');
+                : 'Local preview package created. Refresh the live Preview before publishing.', 'success');
             elements.packagePanel.scrollIntoView({ behavior: 'smooth', block: 'start' });
         } catch (error) {
             setStatus(elements.publishStatus, error.message || 'Unable to prepare the publish package.', 'error');
@@ -812,11 +812,11 @@
         if (!command) return;
         try {
             await navigator.clipboard.writeText(command);
-            setStatus(elements.publishStatus, 'Staging command copied. Update the package path if your Downloads folder differs.', 'success');
+            setStatus(elements.publishStatus, 'Publish command copied. It will find the latest package in Downloads.', 'success');
         } catch (error) {
             elements.stagingCommandOutput.focus();
             elements.stagingCommandOutput.select();
-            setStatus(elements.publishStatus, 'Copy the selected staging command manually.', '');
+            setStatus(elements.publishStatus, 'Copy the selected publish command manually.', '');
         }
     }
 

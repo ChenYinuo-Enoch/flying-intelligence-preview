@@ -2,7 +2,7 @@
 
 ## Access model
 
-The configured `flying-admin` password hash is a client-side convenience gate only. It is not the publishing security boundary. Publishing requires a GitHub account with write access to `ChenYinuo-Enoch/flying-intelligence-preview` and a manual GitHub Actions confirmation.
+The configured `flying-admin` password hash is a client-side convenience gate only. It is not the publishing security boundary. Publishing requires a locally authenticated GitHub CLI account with write access to `ChenYinuo-Enoch/flying-intelligence-preview` and an explicit PowerShell confirmation.
 
 Never store or enter a GitHub PAT, repository token, Firebase credential, Cloudflare credential, or plaintext Admin password in this repository or in the browser Admin.
 
@@ -11,10 +11,10 @@ Never store or enter a GitHub PAT, repository token, Firebase credential, Cloudf
 1. Open `/admin/`, sign in, and prepare Add Publication, Add Member, or Manage Members content.
 2. Select `Validate & Preview`, then `Preview Update`.
 3. Select `Prepare GitHub Publish` and download the JSON package.
-4. From a clean local checkout whose `origin` is the personal Preview repository, run the displayed `tools/stage-admin-update.ps1` command.
-5. Open GitHub Actions and manually run **Admin Publish Preview Update** with the reported staging branch.
+4. From the repository root, run `.\Publish-Admin-Update.ps1`.
+5. Review the fixed target and update summary, then enter `Y`. The script stages the package through the GitHub API, runs the trusted workflow, waits for it, and verifies Preview Pages.
 
-Downloading or staging a package does not publish it. Do **not** create a Pull Request for an `admin-staging/*` branch.
+Downloading a package does not publish it. Do **not** create a Pull Request for an `admin-staging/*` branch. Use `.\Publish-Admin-Update.ps1 -DryRun` to validate the package and GitHub access without any remote write.
 
 ## Fixed publishing target
 
@@ -23,7 +23,7 @@ Downloading or staging a package does not publish it. Do **not** create a Pull R
 - Branch: `main`
 - Staging prefix: `admin-staging/`
 
-The staging helper and workflows reject any other user, repository, main target, package type, or changed path. The formal `Flying-Intelligence/flying-intelligence.github.io` repository is read-only and is never a publishing target.
+The scripts and workflows reject any other user, repository, main target, package type, or changed path. The formal `Flying-Intelligence/flying-intelligence.github.io` repository is read-only and is never a publishing target.
 
 ## Supported updates
 
@@ -35,6 +35,6 @@ Images must be JPG, PNG, or WebP and at most 5 MiB. A Former member cannot retai
 
 ## Rollback
 
-The publish workflow summary reports `ROLLBACK_EXPECTED_SHA`. To roll back, manually run **Admin Rollback Last Update** with that exact SHA. Rollback creates a new `admin: rollback ...` revert commit; it never resets or force-pushes history.
+Run `.\Rollback-Admin-Update.ps1` to inspect and confirm rollback of the latest eligible Admin commit. The script dispatches and waits for the trusted rollback workflow. Rollback creates a new `admin: rollback ...` revert commit; it never resets or force-pushes history. Use `-DryRun` to check eligibility without a remote write.
 
 The legacy `functions/` and Firebase configuration files remain in repository history and are not used by this GitHub-only Admin runtime.

@@ -1,10 +1,19 @@
 name: Admin Publish Preview Update
+run-name: Admin Publish ${{ inputs.update_id }}
 
 on:
   workflow_dispatch:
     inputs:
       staging_branch:
         description: admin-staging/<update-id> reported by the local helper
+        required: true
+        type: string
+      update_id:
+        description: Exact updateId stored in the publish package
+        required: true
+        type: string
+      staging_commit_sha:
+        description: Exact commit created by the local staging API request
         required: true
         type: string
 
@@ -20,9 +29,13 @@ jobs:
     outputs:
       published_sha: ${{ steps.push.outputs.published_sha }}
       staging_branch: ${{ steps.guard.outputs.staging_branch }}
+      staging_commit_sha: ${{ steps.guard.outputs.staging_commit_sha }}
     env:
       EXPECTED_REPOSITORY: ChenYinuo-Enoch/flying-intelligence-preview
       STAGING_BRANCH: ${{ inputs.staging_branch }}
+      INPUT_UPDATE_ID: ${{ inputs.update_id }}
+      EXPECTED_STAGING_BRANCH: admin-staging/${{ inputs.update_id }}
+      STAGING_COMMIT_SHA: ${{ inputs.staging_commit_sha }}
     steps:
       - name: Verify repository and staging branch
         id: guard
@@ -39,7 +52,20 @@ jobs:
             echo 'Invalid staging branch.' >&2
             exit 1
           fi
+          if [[ ! "$INPUT_UPDATE_ID" =~ ^[A-Za-z0-9][A-Za-z0-9._-]{7,79}$ ]]; then
+            echo 'Invalid update ID.' >&2
+            exit 1
+          fi
+          if [[ "$STAGING_BRANCH" != "$EXPECTED_STAGING_BRANCH" ]]; then
+            echo 'Staging branch does not match the requested update ID.' >&2
+            exit 1
+          fi
+          if [[ ! "$STAGING_COMMIT_SHA" =~ ^[a-f0-9]{40}$ ]]; then
+            echo 'Invalid staging commit SHA.' >&2
+            exit 1
+          fi
           echo "staging_branch=$STAGING_BRANCH" >> "$GITHUB_OUTPUT"
+          echo "staging_commit_sha=$STAGING_COMMIT_SHA" >> "$GITHUB_OUTPUT"
 
       - name: Check out trusted main
         uses: actions/checkout@v4
@@ -52,11 +78,14 @@ jobs:
         run: |
           set -euo pipefail
           git fetch --no-tags origin "refs/heads/${STAGING_BRANCH}:refs/remotes/origin/${STAGING_BRANCH}"
-          git show "refs/remotes/origin/${STAGING_BRANCH}:.admin-staging/update.json" > "$RUNNER_TEMP/update.json"
-          expected_id="${STAGING_BRANCH#admin-staging/}"
+          if [[ "$(git rev-parse "refs/remotes/origin/${STAGING_BRANCH}")" != "$STAGING_COMMIT_SHA" ]]; then
+            echo 'Staging branch changed after local verification.' >&2
+            exit 1
+          fi
+          git show "$STAGING_COMMIT_SHA:.admin-staging/update.json" > "$RUNNER_TEMP/update.json"
           package_id="$(node -e "const fs=require('node:fs'); const p=JSON.parse(fs.readFileSync(process.argv[1],'utf8')); process.stdout.write(String(p.updateId||''));" "$RUNNER_TEMP/update.json")"
-          if [[ "$package_id" != "$expected_id" ]]; then
-            echo 'Package updateId does not match the staging branch.' >&2
+          if [[ "$package_id" != "$INPUT_UPDATE_ID" ]]; then
+            echo 'Package updateId does not match the workflow input.' >&2
             exit 1
           fi
 
@@ -142,6 +171,7 @@ jobs:
       contents: write
     env:
       STAGING_BRANCH: ${{ needs.publish.outputs.staging_branch }}
+      STAGING_COMMIT_SHA: ${{ needs.publish.outputs.staging_commit_sha }}
     steps:
       - name: Check out main for authenticated cleanup
         uses: actions/checkout@v4
@@ -155,6 +185,15 @@ jobs:
           set -euo pipefail
           if [[ ! "$STAGING_BRANCH" =~ ^admin-staging/[A-Za-z0-9._-]+$ ]]; then
             echo 'STAGING_CLEANUP=FAILED' >> "$GITHUB_STEP_SUMMARY"
+            exit 1
+          fi
+          if [[ ! "$STAGING_COMMIT_SHA" =~ ^[a-f0-9]{40}$ ]]; then
+            echo 'STAGING_CLEANUP=FAILED' >> "$GITHUB_STEP_SUMMARY"
+            exit 1
+          fi
+          remote_sha="$(git ls-remote --heads origin "refs/heads/$STAGING_BRANCH" | awk '{print $1}')"
+          if [[ "$remote_sha" != "$STAGING_COMMIT_SHA" ]]; then
+            echo 'STAGING_CLEANUP=SKIPPED_BRANCH_CHANGED' >> "$GITHUB_STEP_SUMMARY"
             exit 1
           fi
           git push origin --delete "$STAGING_BRANCH"

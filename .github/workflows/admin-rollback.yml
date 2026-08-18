@@ -1,10 +1,15 @@
 name: Admin Rollback Last Update
+run-name: Admin Rollback ${{ inputs.rollback_id }}
 
 on:
   workflow_dispatch:
     inputs:
       expected_head_sha:
         description: PUBLISHED_COMMIT_SHA from the Admin Publish workflow summary
+        required: true
+        type: string
+      rollback_id:
+        description: First seven characters of expected_head_sha
         required: true
         type: string
 
@@ -22,6 +27,7 @@ jobs:
     env:
       EXPECTED_REPOSITORY: ChenYinuo-Enoch/flying-intelligence-preview
       EXPECTED_HEAD_SHA: ${{ inputs.expected_head_sha }}
+      ROLLBACK_ID: ${{ inputs.rollback_id }}
     steps:
       - name: Verify repository and expected SHA
         env:
@@ -35,6 +41,10 @@ jobs:
           fi
           if [[ ! "$EXPECTED_HEAD_SHA" =~ ^[a-f0-9]{40}$ ]]; then
             echo 'Expected head SHA is invalid.' >&2
+            exit 1
+          fi
+          if [[ ! "$ROLLBACK_ID" =~ ^[a-f0-9]{7}$ || "${EXPECTED_HEAD_SHA:0:7}" != "$ROLLBACK_ID" ]]; then
+            echo 'Rollback ID does not match the expected head SHA.' >&2
             exit 1
           fi
 
