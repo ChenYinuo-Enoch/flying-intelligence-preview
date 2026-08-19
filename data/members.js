@@ -200,4 +200,19 @@ const members = [
         email: "1796074820a@gmail.com",
         links: []
     }
+    {
+        id: "yinuo-chen",
+        type: "member",
+        status: "current",
+        year: 2026,
+        name: "Yinuo Chen",
+        image: "../groups/yinuo-chen.jpg",
+        alt: "Yinuo Chen",
+        profileUrl: "",
+        time: "(Summer 2026 - Present)",
+        institution: "Wenzhou-Kean University",
+        research: "LLM - Human-Machine Interactive",
+        email: "chenyinoc@gmail.com",
+        links: []
+    },
 ];
