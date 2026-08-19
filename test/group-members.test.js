@@ -30,3 +30,13 @@ test('moves former records out of current years and renders them once after curr
     assert.equal((markup.match(/id="former-member"/g) || []).length, 1);
     assert.ok(markup.indexOf('former-members-heading') > markup.indexOf('group-2025-heading'));
 });
+
+test('gives linked and unlinked member names the same visual name hook', function () {
+    const markup = groupMembers.buildGroupMarkup([
+        { id: 'linked', type: 'member', year: 2026, status: 'current', name: 'Linked Member', image: 'linked.jpg', profileUrl: 'linked.html', time: '', institution: 'A', research: 'R', email: 'linked@example.org', links: [] },
+        { id: 'unlinked', type: 'member', year: 2026, status: 'current', name: 'Unlinked Member', image: 'unlinked.jpg', profileUrl: '', time: '', institution: 'A', research: 'R', email: 'unlinked@example.org', links: [] }
+    ]);
+
+    assert.match(markup, /<b class="member-name"><a href="linked\.html">Linked Member<\/a><\/b>/);
+    assert.match(markup, /<b class="member-name">Unlinked Member<\/b>/);
+});

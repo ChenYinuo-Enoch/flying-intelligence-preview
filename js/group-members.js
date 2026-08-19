@@ -43,7 +43,7 @@
                 <div class="card">
                     ${imageMarkup}
                     <div class="post-meta">
-                        <span class="d-block" style="padding-top:10px"><b>${name}</b></span>
+                        <span class="d-block" style="padding-top:10px"><b class="member-name">${name}</b></span>
                         ${details}
                         ${links}
                     </div>

@@ -888,6 +888,11 @@ body.person-page > .container > .section-title:first-of-type h2,
   color: var(--color-accent-ink) !important;
 }
 
+.group-page .member-card .post-meta .member-name,
+.group-page .advisor-card .post-meta .member-name {
+  color: var(--color-accent-ink) !important;
+}
+
 .group-page .former-members-section {
   border-top: 1px solid rgba(15, 43, 61, 0.14);
   padding-top: clamp(32px, 5vw, 56px);
