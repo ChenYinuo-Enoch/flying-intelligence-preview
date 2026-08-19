@@ -2,7 +2,9 @@
 
 const fs = require('node:fs');
 const path = require('node:path');
+const vm = require('node:vm');
 const content = require('../../functions/lib/content.js');
+const groupMembers = require('../../js/group-members.js');
 
 const PREVIEW_SITE = 'https://chenyinuo-enoch.github.io/flying-intelligence-preview/';
 const UPDATE_TYPES = new Set(['add_member', 'add_publication', 'member_status']);
@@ -136,6 +138,69 @@ function assertExactChangedPaths(expected, actual) {
     }
 }
 
+function executableMemberRecords(source) {
+    const sandbox = {};
+    try {
+        vm.runInNewContext(`${source}\nthis.__members = members;`, sandbox, {
+            filename: 'data/members.js',
+            timeout: 1000
+        });
+    } catch (error) {
+        throw invalid(`Members data is invalid: ${error.message}`);
+    }
+    const records = sandbox.__members;
+    if (!Array.isArray(records)) throw invalid('Members data is invalid: members must be an array.');
+    const ids = new Set();
+    records.forEach(function (member, index) {
+        if (!member || typeof member !== 'object' || Array.isArray(member)) {
+            throw invalid(`Members data is invalid: record ${index + 1} must be an object.`);
+        }
+        const requiredStrings = ['id', 'type', 'status', 'name', 'image', 'alt', 'profileUrl', 'time', 'institution', 'research', 'email'];
+        requiredStrings.forEach(function (field) {
+            if (typeof member[field] !== 'string') {
+                throw invalid(`Members data is invalid: record ${index + 1} has an invalid ${field}.`);
+            }
+        });
+        if (!member.id || ids.has(member.id)) throw invalid('Members data is invalid: member IDs must be unique.');
+        ids.add(member.id);
+        if (!['advisor', 'member'].includes(member.type)) throw invalid(`Members data is invalid: record ${index + 1} has an invalid type.`);
+        if (!['current', 'former'].includes(member.status)) throw invalid(`Members data is invalid: record ${index + 1} has an invalid status.`);
+        if (member.type === 'member' && !Number.isInteger(member.year)) {
+            throw invalid(`Members data is invalid: record ${index + 1} has an invalid year.`);
+        }
+        if (!Array.isArray(member.links) || member.links.some(function (link) {
+            return !link || typeof link !== 'object' || typeof link.label !== 'string' || typeof link.url !== 'string';
+        })) {
+            throw invalid(`Members data is invalid: record ${index + 1} has invalid links.`);
+        }
+    });
+    return records;
+}
+
+function assertMemberRenderOutput(beforeRecords, nextSource, expectedDelta) {
+    const nextRecords = executableMemberRecords(nextSource);
+    if (nextRecords.length !== beforeRecords.length + expectedDelta) {
+        throw invalid('Members data is invalid: member count changed unexpectedly.');
+    }
+    const nextById = new Map(nextRecords.map(function (member) { return [member.id, member]; }));
+    beforeRecords.forEach(function (member) {
+        const preserved = nextById.get(member.id);
+        if (!preserved || preserved.name !== member.name) {
+            throw invalid(`Members data is invalid: existing member ${member.id} was not preserved.`);
+        }
+    });
+    let markup;
+    try {
+        markup = groupMembers.buildGroupMarkup(nextRecords);
+    } catch (error) {
+        throw invalid(`Members data is invalid: Group renderer failed: ${error.message}`);
+    }
+    const renderedCards = (markup.match(/class="member-card(?: advisor-card)?"/g) || []).length;
+    if (renderedCards !== nextRecords.length) {
+        throw invalid('Members data is invalid: Group renderer did not produce one card per member.');
+    }
+}
+
 function applyAdminUpdate(value, options) {
     const settings = options || {};
     const repositoryRoot = path.resolve(settings.repositoryRoot || process.cwd());
@@ -154,11 +219,12 @@ function applyAdminUpdate(value, options) {
         const dataPath = 'data/members.js';
         const dataFile = safeFilePath(repositoryRoot, dataPath);
         const source = fs.readFileSync(dataFile, 'utf8');
-        const records = content.parseMemberRecords(source);
+        const records = executableMemberRecords(source);
         const member = records.find(function (record) { return record.id === payload.content.id; });
         if (!member) throw invalid('Member record was not found.');
         if (member.status === payload.content.status && member.time === payload.content.time) throw invalid('Member status update makes no change.');
         const nextSource = content.updateMemberRecordSource(source, payload.content);
+        assertMemberRenderOutput(records, nextSource, 0);
         writes.push({ file: dataFile, data: nextSource });
         changedPaths = [dataPath];
         commitMessage = `admin: mark member "${content.shortSubject(member.name)}" as ${payload.content.status}`;
@@ -166,13 +232,15 @@ function applyAdminUpdate(value, options) {
         const dataPath = 'data/members.js';
         const dataFile = safeFilePath(repositoryRoot, dataPath);
         const source = fs.readFileSync(dataFile, 'utf8');
-        if (content.checkMemberDuplicate(content.parseMemberRecords(source), payload.content.draft)) {
+        const records = executableMemberRecords(source);
+        if (content.checkMemberDuplicate(records, payload.content.draft)) {
             throw invalid('Member already exists.');
         }
         const draft = Object.assign({}, payload.content.draft);
         const imagePath = content.uniquePath(assetPaths(repositoryRoot, 'groups'), 'groups', draft.id, payload.content.image.extension);
         draft.image = `../${imagePath}`;
         const nextSource = content.appendArrayEntry(source, content.memberEntry(draft), 'members');
+        assertMemberRenderOutput(records, nextSource, 1);
         writes.push({ file: dataFile, data: nextSource });
         writes.push({ file: safeFilePath(repositoryRoot, imagePath), data: payload.content.image.buffer });
         changedPaths = [dataPath, imagePath].sort();

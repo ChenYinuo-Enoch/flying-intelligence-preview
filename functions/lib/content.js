@@ -292,12 +292,18 @@ function memberEntry(draft) {
 }
 
 function appendArrayEntry(source, entry, variableName) {
-    if (typeof source !== 'string' || !new RegExp(`const\\s+${variableName}\\s*=\\s*\\[`).test(source)) {
+    const declaration = typeof source === 'string'
+        ? new RegExp(`const\\s+${variableName}\\s*=\\s*\\[`).exec(source)
+        : null;
+    if (!declaration) {
         throw invalid(`${variableName} has an unexpected format.`);
     }
     const closing = source.lastIndexOf('\n];');
     if (closing < 0) throw invalid(`${variableName} is missing its closing array marker.`);
-    return `${source.slice(0, closing)}\n${entry}${source.slice(closing)}`;
+    const before = source.slice(0, closing);
+    const body = source.slice(declaration.index + declaration[0].length, closing).trim();
+    const separator = body && !/,\s*$/.test(before) ? ',' : '';
+    return `${before}${separator}\n${entry}${source.slice(closing)}`;
 }
 
 function uniquePath(existingPaths, directory, stem, extension) {

@@ -199,7 +199,7 @@ const members = [
         research: "Large Language Models, Computer Vision",
         email: "1796074820a@gmail.com",
         links: []
-    }
+    },
     {
         id: "yinuo-chen",
         type: "member",
